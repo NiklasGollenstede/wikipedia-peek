@@ -1,0 +1,11 @@
+node_modules/es6lib/test
+node_modules/es6lib/template
+node_modules/es6lib/electron.js
+node_modules/es6lib/fs.js
+node_modules/es6lib/graph.js
+node_modules/es6lib/polyfill.js
+screenshots/*
+.*
+*.xpi
+test
+*.pdn
