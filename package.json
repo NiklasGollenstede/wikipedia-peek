@@ -1,133 +1,22 @@
 {
 	"author": "Niklas Gollenstede",
-	"dependencies": {
-		"es6lib": "NiklasGollenstede/es6lib"
-	},
-	"description": "",
-	"engines": {
-		"firefox": "38.0 - 47.0"
-	},
-	"icon": "icon.png",
-	"license": "MPL-2.0",
-	"main": "main.js",
+	"description": "Browser extension that shows previews of linked articles on Wikipedia pages",
 	"name": "wikipedia-peek",
-	"permissions": {
-		"multiprocess": true,
-		"private-browsing": true,
-		"cross-domain-content": [
-			"https://en.wikipedia.org",
-			"https://sv.wikipedia.org",
-			"https://ceb.wikipedia.org",
-			"https://de.wikipedia.org",
-			"https://nl.wikipedia.org",
-			"https://fr.wikipedia.org",
-			"https://ru.wikipedia.org",
-			"https://war.wikipedia.org",
-			"https://it.wikipedia.org",
-			"https://es.wikipedia.org",
-			"https://pl.wikipedia.org",
-			"https://vi.wikipedia.org",
-			"https://ja.wikipedia.org",
-			"https://pt.wikipedia.org",
-			"https://zh.wikipedia.org",
-			"https://uk.wikipedia.org",
-			"https://ca.wikipedia.org",
-			"https://fa.wikipedia.org",
-			"https://no.wikipedia.org",
-			"https://sh.wikipedia.org",
-			"https://ar.wikipedia.org",
-			"https://fi.wikipedia.org",
-			"https://hu.wikipedia.org",
-			"https://id.wikipedia.org",
-			"https://ro.wikipedia.org",
-			"https://cs.wikipedia.org",
-			"https://ko.wikipedia.org",
-			"https://sr.wikipedia.org",
-			"https://ms.wikipedia.org",
-			"https://tr.wikipedia.org",
-			"https://eu.wikipedia.org",
-			"https://eo.wikipedia.org",
-			"https://min.wikipedia.org",
-			"https://kk.wikipedia.org",
-			"https://da.wikipedia.org",
-			"https://bg.wikipedia.org",
-			"https://sk.wikipedia.org",
-			"https://hy.wikipedia.org",
-			"https://he.wikipedia.org",
-			"https://lt.wikipedia.org",
-			"https://hr.wikipedia.org",
-			"https://sl.wikipedia.org",
-			"https://et.wikipedia.org",
-			"https://zh-min-nan.wikipedia.org",
-			"https://gl.wikipedia.org",
-			"https://uz.wikipedia.org",
-			"https://nn.wikipedia.org",
-			"https://la.wikipedia.org",
-			"https://ce.wikipedia.org",
-			"https://vo.wikipedia.org",
-			"https://simple.wikipedia.org",
-			"https://el.wikipedia.org",
-			"https://be.wikipedia.org",
-			"https://az.wikipedia.org",
-			"https://ka.wikipedia.org",
-			"https://ur.wikipedia.org",
-			"https://hi.wikipedia.org",
-			"https://th.wikipedia.org",
-			"https://oc.wikipedia.org",
-			"https://mk.wikipedia.org"
-		]
+	"license": "MPL-2.0",
+	"title": "Wikipedia Peek",
+	"version": "2.0.0",
+	"dependencies": {
+		"es6lib": "NiklasGollenstede/es6lib",
+		"web-ext-utils": "NiklasGollenstede/web-ext-utils"
 	},
-	"preferences": [
-		{
-			"name": "theme",
-			"type": "menulist",
-			"title": "Info box theme",
-			"value": "color: inherit; background-color: inherit; border: 1px solid; border-color: inherit;",
-			"options": [
-				{
-					"value": "color: inherit; background-color: inherit; border: 1px solid; border-color: inherit;",
-					"label": "inherit (default)"
-				}, {
-					"value": "color: black; background-color: white; border: 1px solid black;",
-					"label": "black on white"
-				}, {
-					"value": "color: white; background-color: #343C45; border: 1px solid white;",
-					"label": "white on blue/grey"
-				}, {
-					"value": "color: white; background-color: black; border: 1px solid white;",
-					"label": "white on black"
-				}
-			]
-		}, {
-			"name": "fontSize",
-			"type": "integer",
-			"title": "Info box font-size",
-			"description": "in %",
-			"value": 100
-		}, {
-			"name": "relativeWidth",
-			"type": "integer",
-			"title": "Info box width",
-			"description": "in % relative to default",
-			"value": 100
-		}, {
-			"name": "transparency",
-			"type": "integer",
-			"title": "Info box transparency",
-			"description": "in %",
-			"value": 0
-		}, {
-			"name": "showDelay",
-			"type": "integer",
-			"title": "Show delay",
-			"description": "time in ms you have to hover over a link to load the preview",
-			"value": 500
-		}
-	],
 	"repository" : {
 		"type" : "git",
 		"url" : "https://github.com/NiklasGollenstede/wikipedia-peek"
 	},
-	"title": "Wikipedia Peek",
-	"version": "1.1.2"
+
+
+	"scripts": {
+		"start": "web-ext run",
+		"build": "web-ext build --artifacts-dir ."
+	}
 }
