@@ -42,7 +42,7 @@ const defaults = [
 	}, {
 		name: 'showDelay',
 		title: 'Show delay',
-		description: 'time you have to hover over a link to load the preview',
+		description: 'Time you have to hover over a link to load the preview',
 		unit: 'milliseconds',
 		type: 'integer',
 		restrict: { type: 'number', from: 0, to: 2000, },

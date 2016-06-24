@@ -1,8 +1,9 @@
-'use strict'; (function() { // license: MPL-2.0
+(function() { 'use strict'; // license: MPL-2.0
 
 const HOVER_HIDE_DELAY = 800; // ms
 
-const articleUrl = /^(https?:\/\/\w{2,20}\.wikipedia\.org)\/wiki\/([^:#?]*)/; // [ , origin, title, ]
+/// RegExp to extract [ , origin, title, ] from fully qualified urls
+const articleUrl = /^(https?:\/\/\w{2,20}\.wikipedia\.org)\/wiki\/([^:#?]*)/;
 
 const {
 	concurrent: { async, spawn, sleep, },
@@ -11,10 +12,19 @@ const {
 	network: { HttpRequest, },
 } = require('es6lib');
 
-let options;
-const style = addStyle('');
+/// Array of destructor functions, called when the extension is unloaded (disabled/removed/updated)
+const onUnload = [ ];
+chrome.runtime.connect({ name: 'tab', }).onDisconnect.addListener(() => {
+	onUnload.forEach(destroy => { try { destroy(); } catch (error) { console.error(error); } });
+});
 
+/// Style element whose content is updated whenever the options change
+const style = addStyle(''); onUnload.push(() => style.remove());
+
+/// web-ext-utils/options/OptionList instance @see /common/options.js
+let options;
 require('common/options').then(root => {
+	onUnload.push(() => root.destroy());
 	options = root.children;
 	root.onAnyChange(updateCSS);
 	updateCSS();
@@ -38,22 +48,41 @@ function updateCSS() {
 		{
 			display: unset;
 		}
+		@media screen and (-webkit-min-device-pixel-ratio:0)
+		{ /* chrome only: fix missing mathML */
+			#user-peek-root math *
+			{
+				display: unset !important;
+			}
+			#user-peek-root math annotation
+			{
+				display: none !important;
+			}
+		}
 	`);
 }
 
+/// Url encoded title of the current article
 const currentArticle = (window.location.href.match(articleUrl) || [ ])[2];
 
-const Previews = { };
+/// Map object of title ==> Preview
+const Previews = window.Previews = { };
 
+/**
+ * Fetches the first paragraph of an article and registers it in Previews
+ * @property {string}   html     Sanitized HTML
+ * @property {Element}  content  .html in a <span>
+ * @property {number}   width    The width .content should be displayed in
+ * @param {string}  title   The url encoded title of the article
+ * @param {string}  origin  The origin to query, defaults to location.origin
+ */
 function Preview(title, origin) {
 	this.title = title;
 	this.src = (origin || window.location.origin) +'/w/api.php?action=query&prop=extracts&format=json&exintro=&redirects=&titles='+ title;
 	return HttpRequest({
 		src: this.src, responseType: 'json',
 	}).then(({ response, }) => {
-		// this.originalHtml = response.query.pages[Object.keys(response.query.pages)[0]].extract;
-		this.html = sanatize(response.query.pages[Object.keys(response.query.pages)[0]].extract)
-		.replace(/  /g, () => ' \uD83D\uDD34 '); // mark locations where .tex images may be missing with a red '🔴' char
+		this.html = sanatize(this.originalHtml = response.query.pages[Object.keys(response.query.pages)[0]].extract);
 		this.content = createElement('span', { innerHTML: this.html, });
 		this.width = Math.floor(Math.sqrt(this.content.textContent.length) * 15);
 		Previews[this.title] = this;
@@ -61,6 +90,7 @@ function Preview(title, origin) {
 	});
 }
 
+/// Overlay singleton (getter)
 const Overlay = (function() {
 	let Overlay, root, content, lastTimeout;
 	const satuate = (left, width) => Math.min(Math.max(10, left), window.innerWidth - width - 10);
@@ -72,7 +102,17 @@ const Overlay = (function() {
 				id: 'user-peek-content',
 			}),
 		]));
+		onUnload.push(() => {
+			root.remove();
+			root = content = Overlay = null;
+			clearTimeout(lastTimeout);
+		});
 		return (Overlay = {
+			/**
+			 * Shows a Preview next to an Element until shortly after the cursor left that element
+			 * @param  {Preview}  preview  A loaded Preview object
+			 * @param  {Element}  anchor   A Element the mouse courser is currently hovering over
+			 */
 			show(preview, anchor) {
 				content.textContent = '';
 				content.appendChild(preview.content);
@@ -100,32 +140,43 @@ const Overlay = (function() {
 	return () => Overlay || create();
 })();
 
+/**
+ * Primary event listener. Called when an applicable link is hovered.
+ */
 const onMouseEnter = async(function*({ target: link, }) {
+	const titleAttr = link.title; link.title = '';
 	(yield sleep(options.showDelay.value));
-	if (!link.matches(':hover')) { return; }
+	if (!link.matches(':hover')) { link.title = titleAttr; return; }
 
 	const { title, origin, } = link.dataset;
 	const preview = Previews[title] || (yield new Preview(title, origin));
+	if (!link.matches(':hover')) { link.title = titleAttr; return; }
 
 	Overlay().show(preview, link);
-	link.title = '';
+	link.dispatchEvent(new MouseEvent('mousemove'));
+
 }, error => console.error(error.name, error.message, error.stack, error));
 
+/**
+ * Attach the onMouseEnter event listener to all links and set dataset[title, origin]
+ */
 Array.prototype.filter.call(document.querySelectorAll('a'), link => {
-	const  [ , origin, title, ] = (link.href.match(articleUrl) || [ ]);
-	return title ? title !== currentArticle && (link.dataset.title = title) && (window.location.origin === origin || (link.dataset.origin = origin)) : console.log('no title', link);
+	const [ , origin, title, ] = (link.href.match(articleUrl) || [ ]);
+	return title && title !== currentArticle && (link.dataset.title = title) && (window.location.origin === origin || (link.dataset.origin = origin));
 }).forEach(element => element.addEventListener('mouseenter', onMouseEnter));
+onUnload.push(() => Array.prototype.forEach.call(document.querySelectorAll('a'), element => element.removeEventListener('mouseenter', onMouseEnter)));
 
+/**
+ * Removes any tags (not their content) that are not listed in 'allowed' and any attributes except for href (not data: or javascript:) and title (order must be href, title)
+ * @param  {string}  html  Untrusted HTML markup
+ * @return {[type]}        Sanitized, undangerous, simple HTML
+ */
 function sanatize(html) {
-	const allowed = /^(a|b|big|br|code|div|i|p|pre|li|ol|ul|span|sup|sub|tt)$/;
+	const allowed = /^(?:a|b|big|br|code|div|i|p|pre|li|ol|ul|span|sup|sub|tt|math|semantics|annotation(?:-xml)?|m(?:enclose|error|fenced|frac|i|n|o|over|padded|root|row|s|space|sqrt|sub|supsubsup|table|td|text|tr|under|underover))$/;
 	return html.replace(
-		(/<(\/?)(\w+)[^>]*?( href="(?!(javascript|data):)[^"]*?")?( title="[^"]*?")?[^>]*?>/g),
+		(/<(\/?)(\w+)[^>]*?(\s+href="(?!(javascript|data):)[^"]*?")?(\s+title="[^"]*?")?[^>]*?>/g),
 		(match, slash, tag, href, title) => allowed.test(tag) ? ('<'+ slash + tag + (title || '') + (href ? href +'target="_blank"' : '') +'>') : ''
 	);
 }
-
-chrome.runtime.connect({ name: 'tab', }).onDisconnect.addListener(() => {
-	Array.prototype.forEach.call(document.querySelectorAll('a'), element => element.removeEventListener('mouseenter', onMouseEnter));
-});
 
 })();

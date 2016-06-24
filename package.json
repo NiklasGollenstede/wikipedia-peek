@@ -4,8 +4,9 @@
 	"name": "wikipedia-peek",
 	"license": "MPL-2.0",
 	"title": "Wikipedia Peek",
-	"version": "2.0.0",
+	"version": "2.1.0",
 	"dependencies": {
+		"fs-extra": "^0.30.0",
 		"es6lib": "NiklasGollenstede/es6lib",
 		"web-ext-utils": "NiklasGollenstede/web-ext-utils"
 	},
