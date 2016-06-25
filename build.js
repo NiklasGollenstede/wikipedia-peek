@@ -64,32 +64,15 @@ function addPaths(prefix, module) {
 
 addPaths('.', include);
 
-// const copy = promisify(require('fs-extra').copy);
-// (yield paths.map(path => copy(path, join('tmp', path))));
-// promisify(require('zip-dir'))('.', { saveTo: outputName, });
+const copy = promisify(require('fs-extra').copy);
+const remove = promisify(require('fs-extra').remove);
+(yield Promise.all(paths.map(path => copy(path, join('tmp', path)))));
 
-const files = { }, dirs = new Set;
-(yield Promise.all(paths.map(path => (/(?:\\|\/)$/).test(path) ? FS.listDir(path).then(loadFiles) : loadFiles([ path, ]))));
-function loadFiles(paths) {
-	return Promise.all(paths.map(path => {
-		path = relative(__dirname, path);
-		let parent = path;
-		while (
-			(parent = dirname(parent)) && !dirs.has(parent)
-		) { dirs.add(parent); }
-		return FS.readFile(path).then(file => files[path] = file);
-	}));
-}
-dirs.delete('.');
+// (yield execute('web-ext', [ '--source-dir', './tmp', '--artifacts-dir', '.', ]));
+(yield execute('web-ext build --source-dir ./tmp --artifacts-dir .', { env: process.env, }));
 
-
-const zip = new (require('jszip'));
-
-Array.from(dirs).sort().forEach(dir => zip.file(dir, null, { dir: true, }));
-Object.keys(files).forEach(path => zip.file(path, files[path], { createFolders: false, }));
-
-(yield FS.writeFile(outputName, (yield zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', }))));
+(yield remove('./tmp'));
 
 })
 .then(() => console.log('Build done'))
-.catch(error => console.error('Error copying modules', error.stack || error) === process.exit(-1));
+.catch(error => console.error('Error during build', error.stack || error) === process.exit(-1));

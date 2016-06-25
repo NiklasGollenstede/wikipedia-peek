@@ -12,7 +12,7 @@
 	},
 
 	"dependencies": {
-		"jszip": "^3.0.0",
+		"fs-extra": "^0.30.0",
 		"es6lib": "NiklasGollenstede/es6lib",
 		"web-ext-utils": "NiklasGollenstede/web-ext-utils"
 	},
