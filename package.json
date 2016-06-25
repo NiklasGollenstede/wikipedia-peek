@@ -5,19 +5,21 @@
 	"license": "MPL-2.0",
 	"title": "Wikipedia Peek",
 	"version": "2.1.0",
-	"dependencies": {
-		"fs-extra": "^0.30.0",
-		"es6lib": "NiklasGollenstede/es6lib",
-		"web-ext-utils": "NiklasGollenstede/web-ext-utils"
-	},
+
 	"repository" : {
 		"type" : "git",
 		"url" : "https://github.com/NiklasGollenstede/wikipedia-peek"
 	},
 
+	"dependencies": {
+		"jszip": "^3.0.0",
+		"es6lib": "NiklasGollenstede/es6lib",
+		"web-ext-utils": "NiklasGollenstede/web-ext-utils"
+	},
 
 	"scripts": {
 		"start": "web-ext run",
-		"build": "web-ext build --artifacts-dir ."
+		"build": "node build.js",
+		"postinstall": "node build.js"
 	}
 }
