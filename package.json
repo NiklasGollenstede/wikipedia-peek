@@ -1,10 +1,10 @@
 {
-	"author": "Niklas Gollenstede",
-	"description": "Browser extension that shows previews of linked articles on Wikipedia pages",
 	"name": "wikipedia-peek",
-	"license": "MPL-2.0",
 	"title": "Wikipedia Peek",
-	"version": "2.1.0",
+	"description": "Browser extension that shows previews of linked articles on Wikipedia pages",
+	"version": "2.2.0",
+	"license": "MPL-2.0",
+	"author": "Niklas Gollenstede",
 
 	"repository" : {
 		"type" : "git",

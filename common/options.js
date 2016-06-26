@@ -40,6 +40,18 @@ const defaults = [
 		restrict: { type: 'number', from: 0, to: 100, },
 		default: 0,
 	}, {
+		name: 'touchMode',
+		title: 'Touch Mode',
+		description: `If touch mode is enabled, the previews won't show on hover but on the first click/tap on a link, a second click/tap will navigate.
+		<br>'Auto detect' will dynamically change modes based on the input method (mouse/touch) you use. If this doesn't work in your browser choose 'Always on/off'`,
+		default: 'auto',
+		type: 'menulist',
+		options: [
+			{ label: 'Always off',   value: false, },
+			{ label: 'Auto detect',  value: 'auto', },
+			{ label: 'Always on',    value: true, },
+		],
+	}, {
 		name: 'showDelay',
 		title: 'Show delay',
 		description: 'Time you have to hover over a link to load the preview',

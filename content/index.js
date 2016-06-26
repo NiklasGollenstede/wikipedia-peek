@@ -1,16 +1,19 @@
 (function() { 'use strict'; // license: MPL-2.0
 
 const HOVER_HIDE_DELAY = 800; // ms
+const TOUCH_MODE_TIMEOUT = 1000; // ms
 
 /// RegExp to extract [ , origin, title, ] from fully qualified urls
-const articleUrl = /^(https?:\/\/\w{2,20}\.wikipedia\.org)\/wiki\/([^:#?]*)/;
+const articleUrl = /^(https?:\/\/\w{2,20}(?:\.m)?\.wikipedia\.org)\/wiki\/([^:#?]*)$/;
 
 const {
 	concurrent: { async, spawn, sleep, },
 	dom: { addStyle, createElement, once, },
-	functional: { log, },
+	functional: { log, blockEvent, },
 	network: { HttpRequest, },
 } = require('es6lib');
+
+const firefox = chrome.extension.getURL('.').startsWith('moz');
 
 /// Array of destructor functions, called when the extension is unloaded (disabled/removed/updated)
 const onUnload = [ ];
@@ -21,6 +24,13 @@ chrome.runtime.connect({ name: 'tab', }).onDisconnect.addListener(() => {
 /// Style element whose content is updated whenever the options change
 const style = addStyle(''); onUnload.push(() => style.remove());
 
+/// returns whether or not the screen has recently been touched and touch friendly behaviour should apply
+let touchMode = () => false;
+let lastTouch = 0; const touchEvents = [ 'touchstart', 'touchmove', 'touchend', ];
+touchEvents.forEach(type => document.body.addEventListener(type, onTouch));
+onUnload.push(() => touchEvents.forEach(type => document.body.removeEventListener(type, onTouch)));
+function onTouch() { lastTouch = Date.now(); }
+
 /// web-ext-utils/options/OptionList instance @see /common/options.js
 let options;
 require('common/options').then(root => {
@@ -28,6 +38,9 @@ require('common/options').then(root => {
 	options = root.children;
 	root.onAnyChange(updateCSS);
 	updateCSS();
+	options.touchMode.whenChange(mode => touchMode = typeof mode === 'boolean' ? () => mode : () => {
+		return lastTouch && Date.now() - lastTouch < TOUCH_MODE_TIMEOUT;
+	});
 });
 
 function updateCSS() {
@@ -79,21 +92,43 @@ const Previews = window.Previews = { };
 function Preview(title, origin) {
 	this.title = title;
 	this.src = (origin || window.location.origin) +'/w/api.php?action=query&prop=extracts&format=json&exintro=&redirects=&titles='+ title;
-	return HttpRequest({
+	return (Previews[this.title] = HttpRequest({
 		src: this.src, responseType: 'json',
 	}).then(({ response, }) => {
 		this.html = sanatize(this.originalHtml = response.query.pages[Object.keys(response.query.pages)[0]].extract);
 		this.content = createElement('span', { innerHTML: this.html, });
 		this.width = Math.floor(Math.sqrt(this.content.textContent.length) * 15);
-		Previews[this.title] = this;
 		return this;
-	});
+	})
+	.catch(error => { delete Previews[this.title]; throw error; }));
 }
 
 /// Overlay singleton (getter)
 const Overlay = (function() {
-	let Overlay, root, content, lastTimeout;
+	let Overlay, root, content, lastTimeout, currentAnchor;
 	const satuate = (left, width) => Math.min(Math.max(10, left), window.innerWidth - width - 10);
+
+	const handlers = {
+		click(event) {
+			const { target, } = event;
+			if (target === currentAnchor) { }
+			else if (!target.matches || !target.matches('#user-peek-root, #user-peek-root *')) { event.preventDefault(); }
+			else { return; }
+			Overlay.hide();
+		},
+		mouseleave() {
+			!touchMode() && Overlay.hideSoon();
+		},
+		attach() {
+			setTimeout(() => document.addEventListener('click', handlers.click), 500);
+			currentAnchor.addEventListener('mouseleave', handlers.mouseleave);
+		},
+		detatch() {
+			document.removeEventListener('click', handlers.click);
+			currentAnchor && currentAnchor.removeEventListener('mouseleave', handlers.mouseleave);
+		},
+	};
+
 	function create() {
 		root = document.body.appendChild(createElement('div', {
 			id: 'user-peek-root',
@@ -104,8 +139,9 @@ const Overlay = (function() {
 		]));
 		onUnload.push(() => {
 			root.remove();
-			root = content = Overlay = null;
+			handlers.detatch();
 			clearTimeout(lastTimeout);
+			Overlay = root = content = lastTimeout = currentAnchor = null;
 		});
 		return (Overlay = {
 			/**
@@ -114,6 +150,9 @@ const Overlay = (function() {
 			 * @param  {Element}  anchor   A Element the mouse courser is currently hovering over
 			 */
 			show(preview, anchor) {
+				if (currentAnchor === anchor) { return false; }
+				Overlay.hide();
+				currentAnchor = anchor;
 				content.textContent = '';
 				content.appendChild(preview.content);
 
@@ -126,13 +165,16 @@ const Overlay = (function() {
 
 				root.style.display = 'unset';
 				clearTimeout(lastTimeout);
-				once(anchor, 'mouseleave', Overlay.hideSoon);
+				handlers.attach();
+				return true;
 			},
 			hideSoon() {
 				clearTimeout(lastTimeout);
 				lastTimeout = setTimeout(Overlay.hide, HOVER_HIDE_DELAY);
 			},
 			hide() {
+				handlers.detatch();
+				lastTimeout = currentAnchor = null;
 				root.style.display = '';
 			},
 		});
@@ -141,30 +183,51 @@ const Overlay = (function() {
 })();
 
 /**
- * Primary event listener. Called when an applicable link is hovered.
+ * Primary event listeners. Called when an applicable link is hovered or touched.
  */
 const onMouseEnter = async(function*({ target: link, }) {
+	if (touchMode()) { return; }
 	const titleAttr = link.title; link.title = '';
 	(yield sleep(options.showDelay.value));
 	if (!link.matches(':hover')) { link.title = titleAttr; return; }
 
 	const { title, origin, } = link.dataset;
-	const preview = Previews[title] || (yield new Preview(title, origin));
+	const preview = (yield Previews[title] || new Preview(title, origin));
 	if (!link.matches(':hover')) { link.title = titleAttr; return; }
 
 	Overlay().show(preview, link);
-	link.dispatchEvent(new MouseEvent('mousemove'));
+
+}, error => console.error(error.name, error.message, error.stack, error));
+
+const onMouseDown = async(function*(event) {
+	if (!touchMode()) { return; }
+	const { target: link, } = event;
+	const href = link.href; link.removeAttribute('href');
+
+	const { title, origin, } = link.dataset;
+	const preview = (yield Previews[title] || new Preview(title, origin));
+	setTimeout(() => link.href = href, 50);
+
+	if (
+		!Overlay().show(preview, link)
+	) { window.location = href; }
 
 }, error => console.error(error.name, error.message, error.stack, error));
 
 /**
- * Attach the onMouseEnter event listener to all links and set dataset[title, origin]
+ * Attach the onMouseEnter and onMouseDown event listeners to all links and set dataset[title, origin]
  */
 Array.prototype.filter.call(document.querySelectorAll('a'), link => {
 	const [ , origin, title, ] = (link.href.match(articleUrl) || [ ]);
 	return title && title !== currentArticle && (link.dataset.title = title) && (window.location.origin === origin || (link.dataset.origin = origin));
-}).forEach(element => element.addEventListener('mouseenter', onMouseEnter));
-onUnload.push(() => Array.prototype.forEach.call(document.querySelectorAll('a'), element => element.removeEventListener('mouseenter', onMouseEnter)));
+}).forEach(element => {
+	element.addEventListener('mouseenter', onMouseEnter);
+	element.addEventListener('mousedown', onMouseDown);
+});
+onUnload.push(() => Array.prototype.forEach.call(document.querySelectorAll('a'), element => {
+	element.removeEventListener('mouseenter', onMouseEnter);
+	element.removeEventListener('mousedown', onMouseDown);
+}));
 
 /**
  * Removes any tags (not their content) that are not listed in 'allowed' and any attributes except for href (not data: or javascript:) and title (order must be href, title)
