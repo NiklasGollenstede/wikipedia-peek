@@ -110,7 +110,7 @@ const Overlay = (function() {
 
 	const handlers = {
 		click(event) {
-			const { target, } = event;
+			const { currentTarget: target, } = event;
 			if (target === currentAnchor) { }
 			else if (!target.matches || !target.matches('#user-peek-root, #user-peek-root *')) { event.preventDefault(); }
 			else { return; }
@@ -164,7 +164,6 @@ const Overlay = (function() {
 				root.style.width = width +'px';
 
 				root.style.display = 'unset';
-				clearTimeout(lastTimeout);
 				handlers.attach();
 				return true;
 			},
@@ -174,7 +173,8 @@ const Overlay = (function() {
 			},
 			hide() {
 				handlers.detatch();
-				lastTimeout = currentAnchor = null;
+				clearTimeout(lastTimeout); lastTimeout = null;
+				const anchor = currentAnchor; setTimeout(() => currentAnchor === anchor && (currentAnchor = null), 300); // delayed delete to prevent duplicate .show() just after .hide()
 				root.style.display = '';
 			},
 		});
@@ -185,7 +185,7 @@ const Overlay = (function() {
 /**
  * Primary event listeners. Called when an applicable link is hovered or touched.
  */
-const onMouseEnter = async(function*({ target: link, }) {
+const onMouseEnter = async(function*({ currentTarget: link, }) {
 	if (touchMode()) { return; }
 	const titleAttr = link.title; link.title = '';
 	(yield sleep(options.showDelay.value));
@@ -199,18 +199,15 @@ const onMouseEnter = async(function*({ target: link, }) {
 
 }, error => console.error(error.name, error.message, error.stack, error));
 
-const onMouseDown = async(function*(event) {
-	if (!touchMode()) { return; }
-	const { target: link, } = event;
-	const href = link.href; link.removeAttribute('href');
+const onMouseDown = async(function*({ currentTarget: link, }) {
+	if (!touchMode()) { window.location = link.dataset.href; return; }
 
 	const { title, origin, } = link.dataset;
 	const preview = (yield Previews[title] || new Preview(title, origin));
-	setTimeout(() => link.href = href, 50);
 
 	if (
 		!Overlay().show(preview, link)
-	) { window.location = href; }
+	) { window.location = link.dataset.href; }
 
 }, error => console.error(error.name, error.message, error.stack, error));
 
@@ -220,13 +217,18 @@ const onMouseDown = async(function*(event) {
 Array.prototype.filter.call(document.querySelectorAll('a'), link => {
 	const [ , origin, title, ] = (link.href.match(articleUrl) || [ ]);
 	return title && title !== currentArticle && (link.dataset.title = title) && (window.location.origin === origin || (link.dataset.origin = origin));
-}).forEach(element => {
-	element.addEventListener('mouseenter', onMouseEnter);
-	element.addEventListener('mousedown', onMouseDown);
+}).forEach(link => {
+	link.dataset.href = link.href; link.removeAttribute('href');
+	link.style.cursor = 'pointer';
+	link.addEventListener('mouseenter', onMouseEnter);
+	link.addEventListener('mousedown', onMouseDown);
 });
-onUnload.push(() => Array.prototype.forEach.call(document.querySelectorAll('a'), element => {
-	element.removeEventListener('mouseenter', onMouseEnter);
-	element.removeEventListener('mousedown', onMouseDown);
+onUnload.push(() => Array.prototype.forEach.call(document.querySelectorAll('a'), link => {
+	link.href = link.dataset.href;
+	link.style.removeProperty('cursor');
+	delete link.dataset.title; delete link.dataset.origin;
+	link.removeEventListener('mouseenter', onMouseEnter);
+	link.removeEventListener('mousedown', onMouseDown);
 }));
 
 /**

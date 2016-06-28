@@ -2,7 +2,7 @@
 	"manifest_version": 2,
 	"name": "Wikipedia Peek",
 	"short_name": "Wikipedia Peek",
-	"version": "2.2.0",
+	"version": "2.2.3",
 	"author": "Niklas Gollenstede",
 	"license": "MPL-2.0",
 
