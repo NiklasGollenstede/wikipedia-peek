@@ -1,7 +1,7 @@
 (function() { 'use strict'; // license: MPL-2.0
 
 const HOVER_HIDE_DELAY = 800; // ms
-const TOUCH_MODE_TIMEOUT = 1000; // ms
+const TOUCH_MODE_TIMEOUT = 100; // ms
 
 /// RegExp to extract [ , origin, title, ] from fully qualified urls
 const articleUrl = /^(https?:\/\/\w{2,20}(?:\.m)?\.wikipedia\.org)\/wiki\/([^:#?]*)$/;
@@ -71,6 +71,10 @@ function updateCSS() {
 			{
 				display: none !important;
 			}
+		}
+		a:not([href])
+		{
+			cursor: pointer;
 		}
 	`);
 }
@@ -199,7 +203,13 @@ const onMouseEnter = async(function*({ currentTarget: link, }) {
 
 }, error => console.error(error.name, error.message, error.stack, error));
 
-const onMouseDown = async(function*({ currentTarget: link, }) {
+const onMouseDown = async(function*({ currentTarget: link, button, }) {
+	if (button) {
+		link.href = link.dataset.href;
+		setTimeout(() => link.removeAttribute('href'), TOUCH_MODE_TIMEOUT);
+		return;
+	}
+
 	if (!touchMode()) { window.location = link.dataset.href; return; }
 
 	const { title, origin, } = link.dataset;
@@ -219,13 +229,11 @@ Array.prototype.filter.call(document.querySelectorAll('a'), link => {
 	return title && title !== currentArticle && (link.dataset.title = title) && (window.location.origin === origin || (link.dataset.origin = origin));
 }).forEach(link => {
 	link.dataset.href = link.href; link.removeAttribute('href');
-	link.style.cursor = 'pointer';
 	link.addEventListener('mouseenter', onMouseEnter);
 	link.addEventListener('mousedown', onMouseDown);
 });
 onUnload.push(() => Array.prototype.forEach.call(document.querySelectorAll('a'), link => {
 	link.href = link.dataset.href;
-	link.style.removeProperty('cursor');
 	delete link.dataset.title; delete link.dataset.origin;
 	link.removeEventListener('mouseenter', onMouseEnter);
 	link.removeEventListener('mousedown', onMouseDown);
