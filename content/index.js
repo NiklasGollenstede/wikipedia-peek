@@ -1,7 +1,7 @@
 (function() { 'use strict'; // license: MPL-2.0
 
 const HOVER_HIDE_DELAY = 800; // ms
-const TOUCH_MODE_TIMEOUT = 100; // ms
+const TOUCH_MODE_TIMEOUT = 500; // ms
 
 /// RegExp to extract [ , origin, title, ] from fully qualified urls
 const articleUrl = /^(https?:\/\/\w{2,20}(?:\.m)?\.wikipedia\.org)\/wiki\/([^:#?]*)$/;
@@ -12,8 +12,6 @@ const {
 	functional: { log, blockEvent, },
 	network: { HttpRequest, },
 } = require('es6lib');
-
-const firefox = chrome.extension.getURL('.').startsWith('moz');
 
 /// Array of destructor functions, called when the extension is unloaded (disabled/removed/updated)
 const onUnload = [ ];
@@ -30,6 +28,18 @@ let lastTouch = 0; const touchEvents = [ 'touchstart', 'touchmove', 'touchend', 
 touchEvents.forEach(type => document.body.addEventListener(type, onTouch));
 onUnload.push(() => touchEvents.forEach(type => document.body.removeEventListener(type, onTouch)));
 function onTouch() { lastTouch = Date.now(); }
+
+/// prevents the click event that would follow a mousedown event
+const preventClick = (() => {
+	let timeout;
+	return () => {
+		clearTimeout(timeout);
+		document.addEventListener('click', blockEvent);
+		timeout = setTimeout(() => {
+			document.removeEventListener('click', blockEvent);
+		}, TOUCH_MODE_TIMEOUT);
+	};
+})();
 
 /// web-ext-utils/options/OptionList instance @see /common/options.js
 let options;
@@ -201,25 +211,20 @@ const onMouseEnter = async(function*({ currentTarget: link, }) {
 
 	Overlay().show(preview, link);
 
-}, error => console.error(error.name, error.message, error.stack, error));
+}, error => console.error(error));
 
-const onMouseDown = async(function*({ currentTarget: link, button, }) {
-	if (button) {
-		link.href = link.dataset.href;
-		setTimeout(() => link.removeAttribute('href'), TOUCH_MODE_TIMEOUT);
-		return;
-	}
+const onMouseDown = async(function*(event) {
+	if (event.button || !touchMode()) { return; }
+	preventClick();
 
-	if (!touchMode()) { window.location = link.dataset.href; return; }
-
-	const { title, origin, } = link.dataset;
+	const { title, origin, } = this.dataset;
 	const preview = (yield Previews[title] || new Preview(title, origin));
 
 	if (
-		!Overlay().show(preview, link)
-	) { window.location = link.dataset.href; }
+		!Overlay().show(preview, this)
+	) { window.location = this.href; }
 
-}, error => console.error(error.name, error.message, error.stack, error));
+}, error => console.error(error));
 
 /**
  * Attach the onMouseEnter and onMouseDown event listeners to all links and set dataset[title, origin]
@@ -228,12 +233,10 @@ Array.prototype.filter.call(document.querySelectorAll('a'), link => {
 	const [ , origin, title, ] = (link.href.match(articleUrl) || [ ]);
 	return title && title !== currentArticle && (link.dataset.title = title) && (window.location.origin === origin || (link.dataset.origin = origin));
 }).forEach(link => {
-	link.dataset.href = link.href; link.removeAttribute('href');
 	link.addEventListener('mouseenter', onMouseEnter);
 	link.addEventListener('mousedown', onMouseDown);
 });
 onUnload.push(() => Array.prototype.forEach.call(document.querySelectorAll('a'), link => {
-	link.href = link.dataset.href;
 	delete link.dataset.title; delete link.dataset.origin;
 	link.removeEventListener('mouseenter', onMouseEnter);
 	link.removeEventListener('mousedown', onMouseDown);
