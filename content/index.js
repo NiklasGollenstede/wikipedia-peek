@@ -213,18 +213,28 @@ const onMouseEnter = async(function*({ currentTarget: link, }) {
 
 }, error => console.error(error));
 
-const onMouseDown = async(function*(event) {
+function onTouchEnd(event) {
+	if (
+		event.touches.length !== 0 || event.targetTouches.length !== 0
+		|| event.changedTouches.length !== 1
+		|| event.changedTouches.item(0).target !== this
+	) { return; }
+	blockEvent(event);
+	preventClick();
+	showOrNavigate(this);
+}
+
+function onMouseDown(event) {
 	if (event.button || !touchMode()) { return; }
 	preventClick();
+	showOrNavigate(this);
+}
 
-	const { title, origin, } = this.dataset;
-	const preview = (yield Previews[title] || new Preview(title, origin));
-
-	if (
-		!Overlay().show(preview, this)
-	) { window.location = this.href; }
-
-}, error => console.error(error));
+function showOrNavigate(link) {
+	const { title, origin, } = link.dataset;
+	(Previews[title] || new Preview(title, origin))
+	.then(preview => !Overlay().show(preview, link) && (window.location = link.href));
+}
 
 /**
  * Attach the onMouseEnter and onMouseDown event listeners to all links and set dataset[title, origin]
@@ -234,11 +244,13 @@ Array.prototype.filter.call(document.querySelectorAll('a'), link => {
 	return title && title !== currentArticle && (link.dataset.title = title) && (window.location.origin === origin || (link.dataset.origin = origin));
 }).forEach(link => {
 	link.addEventListener('mouseenter', onMouseEnter);
+	link.addEventListener('touchend', onTouchEnd);
 	link.addEventListener('mousedown', onMouseDown);
 });
 onUnload.push(() => Array.prototype.forEach.call(document.querySelectorAll('a'), link => {
 	delete link.dataset.title; delete link.dataset.origin;
 	link.removeEventListener('mouseenter', onMouseEnter);
+	link.removeEventListener('touchend', onTouchEnd);
 	link.removeEventListener('mousedown', onMouseDown);
 }));
 
