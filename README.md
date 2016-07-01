@@ -6,7 +6,7 @@ Features: <ul>
 	<li>Full touch support</li>
 	<li>4 themes (Wikipedia, white, black, grey/blue)</li>
 	<li>Customizable font-size and transparency</li>
-	<li>Works in <a href="https://addons.mozilla.org/firefox/addon/wikipedia-peek/">Firefox</a>, <a href="https://chrome.google.com/webstore/detail/planddpadjimakmjdpnolpjjphhooiej">Chrome</a> and <a href="https://addons.mozilla.org/android/addon/wikipedia-peek/">Firefox for Android</a></li>
+	<li>Works in <a href="https://chrome.google.com/webstore/detail/planddpadjimakmjdpnolpjjphhooiej">Chrome</a>, <a href="https://addons.mozilla.org/firefox/addon/wikipedia-peek/">Firefox</a>, <a href="https://addons.opera.com/extensions/details/wikipedia-peek/">Opera</a> and <a href="https://addons.mozilla.org/android/addon/wikipedia-peek/">Firefox for Android</a></li>
 </ul>
 
 This add-ons code is available on <a href="https://github.com/NiklasGollenstede/wikipedia-peek">GitHub</a>. If you have any problems, please report them <a href="https://github.com/NiklasGollenstede/wikipedia-peek/issues">here</a>
