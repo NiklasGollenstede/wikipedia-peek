@@ -2,13 +2,17 @@
 
 const HOVER_HIDE_DELAY = 800; // ms
 const TOUCH_MODE_TIMEOUT = 500; // ms
+const SPINNER_SIZE = 36; // px
 
 /// RegExp to extract [ , origin, title, ] from fully qualified urls
 const articleUrl = /^(https?:\/\/\w{2,20}(?:\.m)?\.wikipedia\.org)\/wiki\/([^:#?]*)$/;
 
+/// Url encoded title of the current article
+const currentArticle = (window.location.href.match(articleUrl) || [ ])[2];
+
 const {
 	concurrent: { async, spawn, sleep, },
-	dom: { addStyle, createElement, once, },
+	dom: { addStyle, createElement, once, getParent, },
 	functional: { log, blockEvent, },
 	network: { HttpRequest, },
 } = require('es6lib');
@@ -55,45 +59,60 @@ require('common/options').then(root => {
 
 function updateCSS() {
 	style.textContent = (String.raw`
-		#user-peek-root
-		{
-			display: none;
-			position: absolute;
-			padding: 0 10px;
-			z-index: 999999;
+		#user-peek-root * {
 			box-sizing: border-box;
-			top: 0px;
-			${ options.theme.value }
-			font-size: ${ options.fontSize.value }%;
+		}
+
+		#user-peek-root {
+			position: absolute;
+			z-index: 999999;
 			opacity: ${ (1 - options.transparency.value / 100).toFixed(5) };
 		}
-		#user-peek-root:hover
-		{
-			display: unset;
+
+		#user-peek-root.showing,
+		#user-peek-root:hover:not(.loading) {
+			background-color: inherit;
 		}
+
+		.showing>#user-peek-content,
+		#user-peek-content:hover {
+			display: block;
+		}
+		#user-peek-content {
+			display: none;
+			padding: 0 10px;
+			${ options.theme.value }
+			font-size: ${ options.fontSize.value }%;
+		}
+
+		.loading>#user-peek-loader {
+			display: block;
+		}
+		#user-peek-loader {
+			display: none;
+			width: 1em; height: 1em;
+			font-size: ${ SPINNER_SIZE }px;
+			margin: 0; padding: 0;
+			position: relative;
+			border-radius: 50%;
+			border: 4px solid rgba(190, 190, 190, 0.8);
+			border-left-color: rgba(100, 100, 100, 0.8);
+			animation: spin .8s infinite cubic-bezier(.3,.6,.8,.5);
+		}
+		@keyframes spin {
+			0% { transform: rotate(0deg); }
+			100% { transform: rotate(360deg); }
+		}
+
 		@media screen and (-webkit-min-device-pixel-ratio:0)
-		{ /* chrome only: fix missing mathML */
+		{ /* webkit only: fix missing mathML */
 			#user-peek-root math *
-			{
-				display: unset !important;
-			}
+			{ display: inline !important; }
 			#user-peek-root math annotation
-			{
-				display: none !important;
-			}
-		}
-		a:not([href])
-		{
-			cursor: pointer;
+			{ display: none !important; }
 		}
 	`);
 }
-
-/// Url encoded title of the current article
-const currentArticle = (window.location.href.match(articleUrl) || [ ])[2];
-
-/// Map object of title ==> Preview
-const Previews = window.Previews = { };
 
 /**
  * Fetches the first paragraph of an article and registers it in Previews
@@ -103,29 +122,34 @@ const Previews = window.Previews = { };
  * @param {string}  title   The url encoded title of the article
  * @param {string}  origin  The origin to query, defaults to location.origin
  */
-function Preview(title, origin) {
-	this.title = title;
-	this.src = (origin || window.location.origin) +'/w/api.php?action=query&prop=extracts&format=json&exintro=&redirects=&titles='+ title;
-	return (Previews[this.title] = HttpRequest({
-		src: this.src, responseType: 'json',
-	}).then(({ response, }) => {
-		this.html = sanatize(this.originalHtml = response.query.pages[Object.keys(response.query.pages)[0]].extract);
-		this.content = createElement('span', { innerHTML: this.html, });
-		this.width = Math.floor(Math.sqrt(this.content.textContent.length) * 15);
-		return this;
-	})
-	.catch(error => { delete Previews[this.title]; throw error; }));
-}
+const Preview = ((title, origin) => {
+	const cache = { };
+	return function Preview(title, origin) {
+		const key = (origin || '') +'?'+ title;
+		if (cache[key]) { return cache[key]; }
+		this.title = title;
+		this.src = (origin || window.location.origin) +'/w/api.php?action=query&prop=extracts&format=json&exintro=&redirects=&titles='+ title;
+		return (cache[key] = HttpRequest({
+			src: this.src, responseType: 'json',
+		}).then(({ response, }) => {
+			this.html = sanatize(this.originalHtml = response.query.pages[Object.keys(response.query.pages)[0]].extract);
+			this.content = createElement('span', { innerHTML: this.html, });
+			this.width = Math.floor(Math.sqrt(this.content.textContent.length) * 15);
+			return this;
+		})
+		.catch(error => { delete cache[key]; throw error; }));
+	};
+})();
 
 /// Overlay singleton (getter)
 const Overlay = (function() {
-	let Overlay, root, content, lastTimeout, currentAnchor;
+	let Overlay, root, content, lastTimeout, currentAnchor, pendingAnchor;
 	const satuate = (left, width) => Math.min(Math.max(10, left), window.innerWidth - width - 10);
 
 	const handlers = {
 		click(event) {
-			const { currentTarget: target, } = event;
-			if (target === currentAnchor) { }
+			const target = getParent(event.target, 'a');
+			if (target === currentAnchor || target === pendingAnchor) { }
 			else if (!target.matches || !target.matches('#user-peek-root, #user-peek-root *')) { event.preventDefault(); }
 			else { return; }
 			Overlay.hide();
@@ -150,6 +174,9 @@ const Overlay = (function() {
 			content = createElement('div', {
 				id: 'user-peek-content',
 			}),
+			createElement('div', {
+				id: 'user-peek-loader',
+			}),
 		]));
 		onUnload.push(() => {
 			root.remove();
@@ -158,6 +185,20 @@ const Overlay = (function() {
 			Overlay = root = content = lastTimeout = currentAnchor = null;
 		});
 		return (Overlay = {
+			load(anchor) {
+				const { title, origin, } = anchor.dataset;
+				root.classList.add('loading');
+				root.classList.remove('showing');
+				clearTimeout(lastTimeout); lastTimeout = null;
+				const position = anchor.getBoundingClientRect();
+				root.style.top = window.scrollY + position.top + position.height / 2 - SPINNER_SIZE / 2 +'px';
+				root.style.left = window.scrollX + position.left + position.width / 2 - SPINNER_SIZE / 2 +'px';
+				pendingAnchor = anchor;
+				return new Preview(title, origin).then(preview => {
+					Overlay.hide();
+					return preview;
+				});
+			},
 			/**
 			 * Shows a Preview next to an Element until shortly after the cursor left that element
 			 * @param  {Preview}  preview  A loaded Preview object
@@ -169,6 +210,7 @@ const Overlay = (function() {
 				currentAnchor = anchor;
 				content.textContent = '';
 				content.appendChild(preview.content);
+				content.preview = preview;
 
 				const position = anchor.getBoundingClientRect();
 				const width = Math.min(preview.width * (options.fontSize.value * options.relativeWidth.value / 1e4), window.innerWidth - 40);
@@ -177,7 +219,7 @@ const Overlay = (function() {
 				root.style.left = satuate(position.left + window.scrollX + position.width / 2 - width / 2, width) +'px';
 				root.style.width = width +'px';
 
-				root.style.display = 'unset';
+				root.classList.add('showing');
 				handlers.attach();
 				return true;
 			},
@@ -186,10 +228,18 @@ const Overlay = (function() {
 				lastTimeout = setTimeout(Overlay.hide, HOVER_HIDE_DELAY);
 			},
 			hide() {
+				root.classList.remove('loading');
+				root.classList.remove('showing');
 				handlers.detatch();
 				clearTimeout(lastTimeout); lastTimeout = null;
+				pendingAnchor = null;
 				const anchor = currentAnchor; setTimeout(() => currentAnchor === anchor && (currentAnchor = null), 300); // delayed delete to prevent duplicate .show() just after .hide()
-				root.style.display = '';
+			},
+			get loading() {
+				return pendingAnchor;
+			},
+			get showing() {
+				return currentAnchor;
 			},
 		});
 	}
@@ -205,8 +255,8 @@ const onMouseEnter = async(function*({ currentTarget: link, }) {
 	(yield sleep(options.showDelay.value));
 	if (!link.matches(':hover')) { link.title = titleAttr; return; }
 
-	const { title, origin, } = link.dataset;
-	const preview = (yield Previews[title] || new Preview(title, origin));
+	if (Overlay().loading === link || Overlay().showing === link) { return; }
+	const preview = (yield Overlay().load(link));
 	if (!link.matches(':hover')) { link.title = titleAttr; return; }
 
 	Overlay().show(preview, link);
@@ -232,8 +282,10 @@ function onMouseDown(event) {
 
 function showOrNavigate(link) {
 	const { title, origin, } = link.dataset;
-	(Previews[title] || new Preview(title, origin))
-	.then(preview => !Overlay().show(preview, link) && (window.location = link.href));
+	if (Overlay().loading === link) { return; }
+	if (Overlay().showing === link) { window.location = link.href; return; }
+	Overlay().load(link)
+	.then(preview => !Overlay().show(preview, link));
 }
 
 /**
@@ -241,7 +293,8 @@ function showOrNavigate(link) {
  */
 Array.prototype.filter.call(document.querySelectorAll('a'), link => {
 	const [ , origin, title, ] = (link.href.match(articleUrl) || [ ]);
-	return title && title !== currentArticle && (link.dataset.title = title) && (window.location.origin === origin || (link.dataset.origin = origin));
+	const sameOrigin = window.location.origin === origin;
+	return title && (title !== currentArticle || !sameOrigin) && (link.dataset.title = title) && (sameOrigin || (link.dataset.origin = origin));
 }).forEach(link => {
 	link.addEventListener('mouseenter', onMouseEnter);
 	link.addEventListener('touchend', onTouchEnd);
