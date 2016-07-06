@@ -69,9 +69,11 @@ function updateCSS() {
 			opacity: ${ (1 - options.transparency.value / 100).toFixed(5) };
 		}
 
-		#user-peek-root.showing,
-		#user-peek-root:hover:not(.loading) {
+		#user-peek-root.showing {
 			background-color: inherit;
+		}
+		#user-peek-root.loading {
+			pointer-events: none;
 		}
 
 		.showing>#user-peek-content,
