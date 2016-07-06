@@ -6,7 +6,7 @@
 	Options
 ) {
 
-const defaults = [
+const model = [
 	{
 		name: 'theme',
 		title: 'Info box theme',
@@ -65,7 +65,7 @@ const defaults = [
 const listerners = new WeakMap;
 
 return new Options({
-	defaults,
+	model,
 	prefix: 'options',
 	storage: Storage.sync || Storage.local,
 	addChangeListener(listener) {

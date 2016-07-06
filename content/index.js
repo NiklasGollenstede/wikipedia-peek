@@ -182,7 +182,7 @@ const Overlay = (function() {
 			root.remove();
 			handlers.detatch();
 			clearTimeout(lastTimeout);
-			Overlay = root = content = lastTimeout = currentAnchor = null;
+			Overlay = root = content = lastTimeout = currentAnchor = pendingAnchor = null;
 		});
 		return (Overlay = {
 			load(anchor) {
@@ -194,10 +194,9 @@ const Overlay = (function() {
 				root.style.top = window.scrollY + position.top + position.height / 2 - SPINNER_SIZE / 2 +'px';
 				root.style.left = window.scrollX + position.left + position.width / 2 - SPINNER_SIZE / 2 +'px';
 				pendingAnchor = anchor;
-				return new Preview(title, origin).then(preview => {
-					Overlay.hide();
-					return preview;
-				});
+				return new Preview(title, origin)
+				.then(value => { Overlay.hide(); return value; })
+				.catch(error => { Overlay.hide(); throw error; });
 			},
 			/**
 			 * Shows a Preview next to an Element until shortly after the cursor left that element

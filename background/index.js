@@ -4,7 +4,6 @@ const { Tabs, } = window.Chrome = require('web-ext-utils/chrome');
 const { matchPatternToRegExp, } = require('web-ext-utils/utils');
 
 Tabs.query({ }).then(tabs => {
-	console.log(tabs);
 	chrome.runtime.getManifest().content_scripts.forEach(({ js, css, matches, exclude_matches, }) => {
 		const includes = (matches|| [ ]).map(matchPatternToRegExp);
 		const excludes = (exclude_matches|| [ ]).map(matchPatternToRegExp);
@@ -23,24 +22,3 @@ Tabs.query({ }).then(tabs => {
 
 // the prots are only used by the content scripts to detect unloads
 chrome.runtime.onConnect.addListener(port => void 0);
-
-
-chrome.runtime.onInstalled.addListener(({ reason, previousVersion: prev, }) => {
-	if (reason === 'install') { return onInstall(); }
-	else if (reason === 'update') {
-		if (prev, prev === chrome.runtime.getManifest().version) { return onReaload(); }
-		return onUpdate(prev);
-	}
-});
-
-function onInstall() {
-	console.log('onInstall');
-}
-
-function onReaload() {
-	console.log('onReaload');
-}
-
-function onUpdate(prev) {
-	console.log('onUpdate', prev);
-}
