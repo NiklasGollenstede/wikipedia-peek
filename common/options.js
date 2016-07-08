@@ -8,6 +8,21 @@
 
 const model = [
 	{
+		name: 'thumb',
+		title: 'Load thumbnail images',
+		type: 'bool',
+		default: true,
+		children: [
+			{
+				name: 'size',
+				title: 'Thumbnail size',
+				suffix: 'px',
+				type: 'integer',
+				restrict: { type: 'number', from: 40, to: 400, },
+				default: 150,
+			},
+		],
+	}, {
 		name: 'theme',
 		title: 'Info box theme',
 		default: 'color: inherit; background-color: inherit; border: 1px solid; border-color: inherit;',
@@ -34,7 +49,7 @@ const model = [
 		default: 100,
 	}, {
 		name: 'transparency',
-		title: 'Info box transparency',
+		title: 'Info box background transparency',
 		suffix: '%',
 		type: 'integer',
 		restrict: { type: 'number', from: 0, to: 100, },

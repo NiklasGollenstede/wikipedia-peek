@@ -2,7 +2,7 @@
 	"manifest_version": 2,
 	"name": "Wikipedia Peek",
 	"short_name": "Wikipedia Peek",
-	"version": "2.3.3",
+	"version": "2.4.0",
 	"author": "Niklas Gollenstede",
 	"license": "MPL-2.0",
 
@@ -15,7 +15,7 @@
 	"applications": {
 		"gecko": {
 			"id": "@wikipedia-peek",
-			"strict_min_version": "48.0"
+			"strict_min_version": "47.0"
 		}
 	},
 

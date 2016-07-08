@@ -5,7 +5,7 @@ const TOUCH_MODE_TIMEOUT = 500; // ms
 const SPINNER_SIZE = 36; // px
 
 /// RegExp to extract [ , origin, title, ] from fully qualified urls
-const articleUrl = /^(https?:\/\/\w{2,20}(?:\.m)?\.wikipedia\.org)\/wiki\/([^:#?]*)$/;
+const articleUrl = /^(https?:\/\/\w{2,20}(?:\.m)?\.wikipedia\.org)\/wiki\/([^:?]*)$/;
 
 /// Url encoded title of the current article
 const currentArticle = (window.location.href.match(articleUrl) || [ ])[2];
@@ -58,6 +58,9 @@ require('common/options').then(root => {
 });
 
 function updateCSS() {
+	let [ , text, background, border, ] = (/([^\s]+);.*?([^\s]+);.*?([^\s]+);$/).exec(options.theme.value) || Array(4).fill('inherit');
+	background === 'inherit' && (background = getComputedStyle(document.body).backgroundColor);
+	const thumbSize = options.thumb.children.size.value;
 	style.textContent = (String.raw`
 		#user-peek-root * {
 			box-sizing: border-box;
@@ -66,12 +69,9 @@ function updateCSS() {
 		#user-peek-root {
 			position: absolute;
 			z-index: 999999;
-			opacity: ${ (1 - options.transparency.value / 100).toFixed(5) };
+			font-size: ${ options.fontSize.value }%;
 		}
 
-		#user-peek-root.showing {
-			background-color: inherit;
-		}
 		#user-peek-root.loading {
 			pointer-events: none;
 		}
@@ -83,15 +83,36 @@ function updateCSS() {
 		#user-peek-content {
 			display: none;
 			padding: 0 10px;
-			${ options.theme.value }
-			font-size: ${ options.fontSize.value }%;
+			color: ${ text };
+			border: 1px solid;
+			border-color: ${ border };
+			position: relative;
+			z-index: 1;
+		}
+		#user-peek-content::before {
+			content: "";
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			z-index: -1;
+			background: ${ background };
+			opacity: ${ (1 - options.transparency.value / 100).toFixed(5) };
+		}
+		#user-peek-thumb {
+			float: right;
+			margin: 10px 0 10px 10px;
+			width: auto; height: auto;
+			max-width: ${ thumbSize }px;
+			max-height: ${ thumbSize }px;
 		}
 
-		.loading>#user-peek-loader {
-			display: block;
-		}
 		#user-peek-loader {
 			display: none;
+		}
+		.loading>#user-peek-loader {
+			display: block;
 			width: 1em; height: 1em;
 			font-size: ${ SPINNER_SIZE }px;
 			margin: 0; padding: 0;
@@ -130,13 +151,26 @@ const Preview = ((title, origin) => {
 		const key = (origin || '') +'?'+ title;
 		if (cache[key]) { return cache[key]; }
 		this.title = title;
-		this.src = (origin || window.location.origin) +'/w/api.php?action=query&prop=extracts&format=json&exintro=&redirects=&titles='+ title;
+		this.section = title.split('#')[1];
+		this.src = (origin || window.location.origin)
+		+ '/w/api.php?action=query&format=json&formatversion=2&redirects='
+		+ '&prop=extracts|pageimages'
+		+ (this.section ? '' : '&exintro=')
+		+ '&piprop=thumbnail|original&pithumbsize='+ options.thumb.children.size.value * devicePixelRatio
+		+ '&titles='+ title;
 		return (cache[key] = HttpRequest({
 			src: this.src, responseType: 'json',
 		}).then(({ response, }) => {
-			this.html = sanatize(this.originalHtml = response.query.pages[Object.keys(response.query.pages)[0]].extract);
+			const page = this.page = response.query.pages[0];
+			const thumb = options.thumb.value && page.thumbnail && page.thumbnail.source;
+			this.thumb = thumb && createElement('img', { src: thumb, id: 'user-peek-thumb', alt: 'loading...', style: {
+				width: page.thumbnail.width / devicePixelRatio +'px', height: page.thumbnail.height / devicePixelRatio +'px',
+			}, });
+			this.html = sanatize(extractSection(page.extract, this.section));
 			this.content = createElement('span', { innerHTML: this.html, });
-			this.width = Math.floor(Math.sqrt(this.content.textContent.length) * 15);
+			this.textSize = this.content.textContent.length * 225;
+			this.thumbSize = thumb ? (page.thumbnail.width / devicePixelRatio + 20) * (page.thumbnail.height / devicePixelRatio + 20) : 0;
+			this.minHeight = thumb ? page.thumbnail.height / devicePixelRatio + 20 : 0;
 			return this;
 		})
 		.catch(error => { delete cache[key]; throw error; }));
@@ -210,11 +244,16 @@ const Overlay = (function() {
 				Overlay.hide();
 				currentAnchor = anchor;
 				content.textContent = '';
+				preview.thumb && content.appendChild(preview.thumb);
 				content.appendChild(preview.content);
+				content.style.minHeight = preview.minHeight +'px';
 				content.preview = preview;
 
 				const position = anchor.getBoundingClientRect();
-				const width = Math.min(preview.width * (options.fontSize.value * options.relativeWidth.value / 1e4), window.innerWidth - 40);
+				const width = Math.min(
+					Math.sqrt(preview.textSize * Math.pow(options.fontSize.value * options.relativeWidth.value / 1e4, 2) + preview.thumbSize),
+					window.innerWidth - 30
+				);
 
 				root.style.top = (position.bottom + window.scrollY + 10) +'px';
 				root.style.left = satuate(position.left + window.scrollX + position.width / 2 - width / 2, width) +'px';
@@ -316,9 +355,23 @@ onUnload.push(() => Array.prototype.forEach.call(document.querySelectorAll('a'),
 function sanatize(html) {
 	const allowed = /^(?:a|b|big|br|code|div|i|p|pre|li|ol|ul|span|sup|sub|tt|math|semantics|annotation(?:-xml)?|m(?:enclose|error|fenced|frac|i|n|o|over|padded|root|row|s|space|sqrt|sub|supsubsup|table|td|text|tr|under|underover))$/;
 	return html.replace(
-		(/<(\/?)(\w+)[^>]*?(\s+href="(?!(javascript|data):)[^"]*?")?(\s+title="[^"]*?")?[^>]*?>/g),
+		(/<(\/?)(\w+)[^>]*?(\s+href="(?!(?:javascript|data):)[^"]*?")?(\s+title="[^"]*?")?[^>]*?>/g),
 		(match, slash, tag, href, title) => allowed.test(tag) ? ('<'+ slash + tag + (title || '') + (href ? href +'target="_blank"' : '') +'>') : ''
 	);
+}
+
+/**
+ * Extracts a #section from an article
+ * @param  {string}  html  HTML markup
+ * @param  {string}  id    Optional id of the section to extract
+ * @return {string}        The HTML section between a header section that contains an `id=${ id }` and the next header section
+ */
+function extractSection(html, id) {
+	if (!id) { return html; }
+	const exp = new RegExp(String.raw`<h\d[^]*?id="${ id }".*?\/h\d>[^]*?(<p>[^]*?)<h\d`);
+	const match = exp.exec(html);
+	if (!match) { console.error(`Failed to extract section "${ id }" /${ exp.source }/ from ${ html }`); return html; }
+	return match[1];
 }
 
 })();
