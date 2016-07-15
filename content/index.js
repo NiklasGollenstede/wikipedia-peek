@@ -5,7 +5,7 @@ const TOUCH_MODE_TIMEOUT = 500; // ms
 const SPINNER_SIZE = 36; // px
 
 /// RegExp to extract [ , origin, title, ] from fully qualified urls
-const articleUrl = /^(https?:\/\/\w{2,20}(?:\.m)?\.wikipedia\.org)\/wiki\/([^:?]*)$/;
+const articleUrl = /^(https?:\/\/[\w-]{2,20}(?:\.m)?\.wikipedia\.org)\/wiki\/([^:?]*)$/;
 
 /// Url encoded title of the current article
 const currentArticle = (window.location.href.match(articleUrl) || [ ])[2];
@@ -13,7 +13,7 @@ const currentArticle = (window.location.href.match(articleUrl) || [ ])[2];
 const {
 	concurrent: { async, spawn, sleep, },
 	dom: { addStyle, createElement, once, getParent, },
-	functional: { log, blockEvent, },
+	functional: { log, blockEvent, fuzzyMatch, },
 	network: { HttpRequest, },
 } = require('es6lib');
 
@@ -60,6 +60,7 @@ require('common/options').then(root => {
 function updateCSS() {
 	let [ , text, background, border, ] = (/([^\s]+);.*?([^\s]+);.*?([^\s]+);$/).exec(options.theme.value) || Array(4).fill('inherit');
 	background === 'inherit' && (background = getComputedStyle(document.body).backgroundColor);
+	border === 'inherit' && (border = getComputedStyle(document.body).borderColor);
 	const thumbSize = options.thumb.children.size.value;
 	style.textContent = (String.raw`
 		#user-peek-root * {
@@ -82,10 +83,12 @@ function updateCSS() {
 		}
 		#user-peek-content {
 			display: none;
-			padding: 0 10px;
+			padding: 5px 10px;
 			color: ${ text };
-			border: 1px solid;
-			border-color: ${ border };
+			border: 1px solid transparent;
+			hyphens: auto;
+			-ms-hyphens: auto;
+			-webkit-hyphens: auto;
 			position: relative;
 			z-index: 1;
 		}
@@ -98,11 +101,19 @@ function updateCSS() {
 			height: 100%;
 			z-index: -1;
 			background: ${ background };
+			border: 1px solid;
+			border-color: ${ border };
 			opacity: ${ (1 - options.transparency.value / 100).toFixed(5) };
+		}
+		#user-peek-content>span>p:first-child {
+			margin-top: 0;
+		}
+		#user-peek-content>span>p:last-child {
+			margin-bottom: 0;
 		}
 		#user-peek-thumb {
 			float: right;
-			margin: 10px 0 10px 10px;
+			margin: 5px 0 3px 10px;
 			width: auto; height: auto;
 			max-width: ${ thumbSize }px;
 			max-height: ${ thumbSize }px;
@@ -161,12 +172,13 @@ const Preview = ((title, origin) => {
 		return (cache[key] = HttpRequest({
 			src: this.src, responseType: 'json',
 		}).then(({ response, }) => {
+			// TODO: response.query.redirects[0].tofragment
 			const page = this.page = response.query.pages[0];
 			const thumb = options.thumb.value && page.thumbnail && page.thumbnail.source;
 			this.thumb = thumb && createElement('img', { src: thumb, id: 'user-peek-thumb', alt: 'loading...', style: {
 				width: page.thumbnail.width / devicePixelRatio +'px', height: page.thumbnail.height / devicePixelRatio +'px',
 			}, });
-			this.html = sanatize(extractSection(page.extract, this.section));
+			this.html = sanatize(extractSection(page.extract, this.section).replace(/<p>\s*<\/p>/, ''));
 			this.content = createElement('span', { innerHTML: this.html, });
 			this.textSize = this.content.textContent.length * 225;
 			this.thumbSize = thumb ? (page.thumbnail.width / devicePixelRatio + 20) * (page.thumbnail.height / devicePixelRatio + 20) : 0;
@@ -180,7 +192,7 @@ const Preview = ((title, origin) => {
 /// Overlay singleton (getter)
 const Overlay = (function() {
 	let Overlay, root, content, lastTimeout, currentAnchor, pendingAnchor;
-	const satuate = (left, width) => Math.min(Math.max(10, left), window.innerWidth - width - 10);
+	const satuate = (left, width) => Math.min(Math.max(10, left), document.documentElement.clientWidth - width - 10);
 
 	const handlers = {
 		click(event) {
@@ -252,7 +264,7 @@ const Overlay = (function() {
 				const position = anchor.getBoundingClientRect();
 				const width = Math.min(
 					Math.sqrt(preview.textSize * Math.pow(options.fontSize.value * options.relativeWidth.value / 1e4, 2) + preview.thumbSize),
-					window.innerWidth - 30
+					document.documentElement.clientWidth - 20
 				);
 
 				root.style.top = (position.bottom + window.scrollY + 10) +'px';
@@ -368,7 +380,13 @@ function sanatize(html) {
  */
 function extractSection(html, id) {
 	if (!id) { return html; }
-	const exp = new RegExp(String.raw`<h\d[^]*?id="${ id }".*?\/h\d>[^]*?(<p>[^]*?)<h\d`);
+
+	// the ids linked tend to be incorrect, so this finds the closest one actually present
+	const ids = [ ], getId = (/id="(.*?)"/g); let m; while ((m = getId.exec(html))) { ids.push(m[1]); }
+	const norms = ids.map(_id => fuzzyMatch(id, _id, 2));
+	const _id = ids[norms.indexOf(norms.reduce((a, b) => a >= b ? a : b))];
+
+	const exp = new RegExp(String.raw`id="${ _id }"[^]*?\/h\d>[^]*?(<[a-gi-z][a-z]*>[^]*?)(?:<h\d|$)`, 'i');
 	const match = exp.exec(html);
 	if (!match) { console.error(`Failed to extract section "${ id }" /${ exp.source }/ from ${ html }`); return html; }
 	return match[1];
