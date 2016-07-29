@@ -8,7 +8,7 @@ const SPINNER_SIZE = 36; // px
 const articleUrl = /^(https?:\/\/[\w-]{2,20}(?:\.m)?\.wikipedia\.org)\/wiki\/([^:?]*)$/;
 
 /// Url encoded title of the current article
-const currentArticle = (window.location.href.match(articleUrl) || [ ])[2];
+const currentArticle = new RegExp('^'+ (window.location.href.match(articleUrl) || [ '', '', '', ])[2].replace(/[\-\[\]\{\}\(\)\*\+\?\.\,\\\/\^\$\|\#\s]/g, '\\$&') +String.raw`(?:$|\#|\:|\?)`);
 
 const {
 	concurrent: { async, spawn, sleep, },
@@ -19,9 +19,10 @@ const {
 
 /// Array of destructor functions, called when the extension is unloaded (disabled/removed/updated)
 const onUnload = [ ];
-chrome.runtime.connect({ name: 'tab', }).onDisconnect.addListener(() => {
+function destroy() {
 	onUnload.forEach(destroy => { try { destroy(); } catch (error) { console.error(error); } });
-});
+}
+chrome.runtime.connect({ name: 'tab', }).onDisconnect.addListener(destroy);
 
 /// Style element whose content is updated whenever the options change
 const style = addStyle(''); onUnload.push(() => style.remove());
@@ -105,10 +106,10 @@ function updateCSS() {
 			border-color: ${ border };
 			opacity: ${ (1 - options.transparency.value / 100).toFixed(5) };
 		}
-		#user-peek-content>span>p:first-child {
+		#user-peek-content>span>:first-child {
 			margin-top: 0;
 		}
-		#user-peek-content>span>p:last-child {
+		#user-peek-content>span>:last-child {
 			margin-bottom: 0;
 		}
 		#user-peek-thumb {
@@ -117,6 +118,21 @@ function updateCSS() {
 			width: auto; height: auto;
 			max-width: ${ thumbSize }px;
 			max-height: ${ thumbSize }px;
+		}
+		#user-peek-content ul {
+			list-style: none;
+			margin-left: 0;
+		}
+		#user-peek-content ul>li {
+			padding-left: 1em;
+		}
+		#user-peek-content ul>li:before {
+			content: "•";
+			position: absolute;
+			left: 0.7em;
+		}
+		#user-peek-content ol {
+			margin-left: 1.2em;
 		}
 
 		#user-peek-loader {
@@ -172,7 +188,13 @@ const Preview = ((title, origin) => {
 		return (cache[key] = HttpRequest({
 			src: this.src, responseType: 'json',
 		}).then(({ response, }) => {
-			// TODO: response.query.redirects[0].tofragment
+			const redirect = response.query.redirects && response.query.redirects[0] || { };
+			if (!this.section && redirect.tofragment) {
+				return (cache[key] = new Preview(redirect.to +'#'+ redirect.tofragment, origin));
+			} else {
+				redirect.tofragment && (this.section = redirect.tofragment);
+			}
+
 			const page = this.page = response.query.pages[0];
 			const thumb = options.thumb.value && page.thumbnail && page.thumbnail.source;
 			this.thumb = thumb && createElement('img', { src: thumb, id: 'user-peek-thumb', alt: 'loading...', style: {
@@ -346,7 +368,9 @@ function showOrNavigate(link) {
 Array.prototype.filter.call(document.querySelectorAll('a'), link => {
 	const [ , origin, title, ] = (link.href.match(articleUrl) || [ ]);
 	const sameOrigin = window.location.origin === origin;
-	return title && (title !== currentArticle || !sameOrigin) && (link.dataset.title = title) && (sameOrigin || (link.dataset.origin = origin));
+	return title
+	&& (!currentArticle.test(title) || !sameOrigin) && (link.dataset.title = title)
+	&& (sameOrigin || (link.dataset.origin = origin));
 }).forEach(link => {
 	link.addEventListener('mouseenter', onMouseEnter);
 	link.addEventListener('touchend', onTouchEnd);

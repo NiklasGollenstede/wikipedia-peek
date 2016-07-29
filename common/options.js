@@ -91,7 +91,9 @@ return new Options({
 	removeChangeListener(listener) {
 		const onChanged = listerners.get(listener);
 		listerners.delete(listener);
-		Storage.onChanged.removeListener(onChanged);
+		try {
+			Storage.onChanged.removeListener(onChanged);
+		} catch (error) { console.error('Failed to remove storage listener', error); }
 	},
 });
 
