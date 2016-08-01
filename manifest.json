@@ -2,7 +2,7 @@
 	"manifest_version": 2,
 	"name": "Wikipedia Peek",
 	"short_name": "Wikipedia Peek",
-	"version": "2.4.1",
+	"version": "2.5.0",
 	"author": "Niklas Gollenstede",
 	"license": "MPL-2.0",
 
@@ -21,14 +21,18 @@
 
 	"permissions": [
 		"storage",
-		"*://*.wikipedia.org/*"
+		"*://*.wikipedia.org/*",
+		"*://*.wikia.com/*"
 	],
 	"background": {
 		"page": "background/index.html"
 	},
 	"content_scripts": [
 		{
-			"matches": [ "*://*.wikipedia.org/*" ],
+			"matches": [
+				"*://*.wikipedia.org/*",
+				"*://*.wikia.com/*"
+			],
 			"match_about_blank": false,
 			"all_frames": false,
 			"run_at": "document_end",

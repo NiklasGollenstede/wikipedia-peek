@@ -5,7 +5,7 @@ const TOUCH_MODE_TIMEOUT = 500; // ms
 const SPINNER_SIZE = 36; // px
 
 /// RegExp to extract [ , origin, title, ] from fully qualified urls
-const articleUrl = /^(https?:\/\/[\w-]{2,20}(?:\.m)?\.wikipedia\.org)\/wiki\/([^:?]*)$/;
+const articleUrl = /^(https?:\/\/[\w\-\.]{1,63}(?:\.m)?\.(?:wikipedia\.org|mediawiki\.org|wikia\.com))\/wiki\/([^:?]*)$/;
 
 /// Url encoded title of the current article
 const currentArticle = new RegExp('^'+ (window.location.href.match(articleUrl) || [ '', '', '', ])[2].replace(/[\-\[\]\{\}\(\)\*\+\?\.\,\\\/\^\$\|\#\s]/g, '\\$&') +String.raw`(?:$|\#|\:|\?)`);
@@ -19,9 +19,9 @@ const {
 
 /// Array of destructor functions, called when the extension is unloaded (disabled/removed/updated)
 const onUnload = [ ];
-function destroy() {
+const destroy = window.destroy = function destroy() {
 	onUnload.forEach(destroy => { try { destroy(); } catch (error) { console.error(error); } });
-}
+};
 chrome.runtime.connect({ name: 'tab', }).onDisconnect.addListener(destroy);
 
 /// Style element whose content is updated whenever the options change
@@ -62,7 +62,6 @@ function updateCSS() {
 	let [ , text, background, border, ] = (/([^\s]+);.*?([^\s]+);.*?([^\s]+);$/).exec(options.theme.value) || Array(4).fill('inherit');
 	background === 'inherit' && (background = getComputedStyle(document.body).backgroundColor);
 	border === 'inherit' && (border = getComputedStyle(document.body).borderColor);
-	const thumbSize = options.thumb.children.size.value;
 	style.textContent = (String.raw`
 		#user-peek-root * {
 			box-sizing: border-box;
@@ -116,8 +115,6 @@ function updateCSS() {
 			float: right;
 			margin: 5px 0 3px 10px;
 			width: auto; height: auto;
-			max-width: ${ thumbSize }px;
-			max-height: ${ thumbSize }px;
 		}
 		#user-peek-content ul {
 			list-style: none;
@@ -178,34 +175,84 @@ const Preview = ((title, origin) => {
 		const key = (origin || '') +'?'+ title;
 		if (cache[key]) { return cache[key]; }
 		this.title = title;
+		this.origin = origin || window.location.origin;
+		this.isWikia = this.origin.endsWith('wikia.com');
 		this.section = title.split('#')[1];
-		this.src = (origin || window.location.origin)
-		+ '/w/api.php?action=query&format=json&formatversion=2&redirects='
-		+ '&prop=extracts|pageimages'
-		+ (this.section ? '' : '&exintro=')
-		+ '&piprop=thumbnail|original&pithumbsize='+ options.thumb.children.size.value * devicePixelRatio
-		+ '&titles='+ title;
+		const thumbPx = options.thumb.children.size.value * devicePixelRatio;
+
+		if (this.isWikia) {
+			this.src = this.origin
+			+ '/api/v1/Articles/Details/?abstract=500' // 500 is max
+			+ '&width='+ thumbPx // +'&height='+ thumbPx
+			+ '&titles='+ encodeURIComponent(title);
+		} else {
+			this.src = this.origin
+			+ '/w/api.php?action=query&format=json&formatversion=2&redirects='
+			+ '&prop=extracts|pageimages'
+			+ (this.section ? '' : '&exintro=')
+			+ '&piprop=thumbnail|original&pithumbsize='+ thumbPx
+			+ '&titles='+ encodeURIComponent(title);
+		}
+
 		return (cache[key] = HttpRequest({
 			src: this.src, responseType: 'json',
 		}).then(({ response, }) => {
-			const redirect = response.query.redirects && response.query.redirects[0] || { };
-			if (!this.section && redirect.tofragment) {
-				return (cache[key] = new Preview(redirect.to +'#'+ redirect.tofragment, origin));
+			let thumb = null;
+			if (this.isWikia) {
+				const page = response.items[Object.keys(response.items)[0]];
+
+				if (/^REDIRECT /.test(page.abstract)) {
+					return (cache[key] = new Preview(page.abstract.slice(9), origin));
+				}
+
+				thumb = page.thumbnail && {
+					source: page.thumbnail
+					.replace(/\/x-offset\/\d+/, '/x-offset/0').replace(/\/window-width\/\d+/, '/window-width/'+ page.original_dimensions.width)
+					.replace(/\/y-offset\/\d+/, '/y-offset/0').replace(/\/window-height\/\d+/, '/window-height/'+ page.original_dimensions.height),
+					width: thumbPx, height: page.original_dimensions.height / page.original_dimensions.width * thumbPx,
+				};
+				if (this.section) {
+					return HttpRequest({
+						src: this.origin +'/api/v1/Articles/AsSimpleJson?id='+ page.id,
+						responseType: 'json',
+					}).then(({ response, }) => {
+						const section = fuzzyFind(response.sections.map(_=>_.title), this.section.replace(/_/g, ' '));
+						this.html = sanatize(
+							response.sections.find(_=>_.title === section).content
+							.filter(_=>_.type === 'paragraph')
+							.map(({ text, }) => `<p>${ text }</p>`).join('')
+						);
+						return finish.call(this);
+					});
+				} else {
+					this.html = sanatize(`<p>${ page.abstract }</p>`);
+					return finish.call(this);
+				}
 			} else {
-				redirect.tofragment && (this.section = redirect.tofragment);
+				const page = this.page = response.query.pages[0];
+
+				const redirect = response.query.redirects && response.query.redirects[0] || { };
+				if (!this.section && redirect.tofragment) {
+					return (cache[key] = new Preview(redirect.to +'#'+ redirect.tofragment, origin));
+				} else {
+					redirect.tofragment && (this.section = redirect.tofragment);
+				}
+
+				thumb = options.thumb.value && page.thumbnail;
+				this.html = sanatize(extractSection(page.extract, this.section).replace(/<p>\s*<\/p>/, ''));
+				return finish.call(this);
 			}
 
-			const page = this.page = response.query.pages[0];
-			const thumb = options.thumb.value && page.thumbnail && page.thumbnail.source;
-			this.thumb = thumb && createElement('img', { src: thumb, id: 'user-peek-thumb', alt: 'loading...', style: {
-				width: page.thumbnail.width / devicePixelRatio +'px', height: page.thumbnail.height / devicePixelRatio +'px',
-			}, });
-			this.html = sanatize(extractSection(page.extract, this.section).replace(/<p>\s*<\/p>/, ''));
-			this.content = createElement('span', { innerHTML: this.html, });
-			this.textSize = this.content.textContent.length * 225;
-			this.thumbSize = thumb ? (page.thumbnail.width / devicePixelRatio + 20) * (page.thumbnail.height / devicePixelRatio + 20) : 0;
-			this.minHeight = thumb ? page.thumbnail.height / devicePixelRatio + 20 : 0;
-			return this;
+			function finish() {
+				this.thumb = thumb && createElement('img', { src: thumb.source, id: 'user-peek-thumb', alt: 'loading...', style: {
+					width: thumb.width / devicePixelRatio +'px', height: thumb.height / devicePixelRatio +'px',
+				}, });
+				this.content = createElement('span', { innerHTML: this.html, });
+				this.textSize = this.content.textContent.length * 225;
+				this.thumbSize = thumb ? (thumb.height / devicePixelRatio + 20) * (thumb.width / devicePixelRatio + 20) : 0;
+				this.minHeight = thumb ? (thumb.height / devicePixelRatio + 20) : 0;
+				return this;
+			}
 		})
 		.catch(error => { delete cache[key]; throw error; }));
 	};
@@ -407,13 +454,23 @@ function extractSection(html, id) {
 
 	// the ids linked tend to be incorrect, so this finds the closest one actually present
 	const ids = [ ], getId = (/id="(.*?)"/g); let m; while ((m = getId.exec(html))) { ids.push(m[1]); }
-	const norms = ids.map(_id => fuzzyMatch(id, _id, 2));
-	const _id = ids[norms.indexOf(norms.reduce((a, b) => a >= b ? a : b))];
+	const _id = fuzzyFind(ids, id);
 
 	const exp = new RegExp(String.raw`id="${ _id }"[^]*?\/h\d>[^]*?(<[a-gi-z][a-z]*>[^]*?)(?:<h\d|$)`, 'i');
 	const match = exp.exec(html);
 	if (!match) { console.error(`Failed to extract section "${ id }" /${ exp.source }/ from ${ html }`); return html; }
 	return match[1];
+}
+
+/**
+ * Finds the string in an array that best matches the search string.
+ * @param  {[string]}  array   The array in which to search.
+ * @param  {string}    string  The string for which to search.
+ * @return {string}            The string in an array that best matches the search string.
+ */
+function fuzzyFind(array, string) {
+	const norms = array.map(item => fuzzyMatch(string, item, 2));
+	return array[norms.indexOf(norms.reduce((a, b) => a >= b ? a : b))];
 }
 
 })();
