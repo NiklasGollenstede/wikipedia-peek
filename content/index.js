@@ -5,7 +5,7 @@ const TOUCH_MODE_TIMEOUT = 500; // ms
 const SPINNER_SIZE = 36; // px
 
 /// RegExp to extract [ , origin, title, ] from fully qualified urls
-const articleUrl = /^(https?:\/\/[\w\-\.]{1,63}(?:\.m)?\.(?:wikipedia\.org|mediawiki\.org|wikia\.com))\/wiki\/([^:?]*)$/;
+const articleUrl = /^(https?:\/\/[\w\-\.]{1,63}?(?:\.m)?\.(?:wikipedia\.org|mediawiki\.org|wikia\.com))\/wiki\/([^:?]*)$/;
 
 /// Url encoded title of the current article
 const currentArticle = new RegExp('^'+ (window.location.href.match(articleUrl) || [ '', '', '', ])[2].replace(/[\-\[\]\{\}\(\)\*\+\?\.\,\\\/\^\$\|\#\s]/g, '\\$&') +String.raw`(?:$|\#|\:|\?)`);

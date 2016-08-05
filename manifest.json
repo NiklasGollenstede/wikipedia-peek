@@ -20,8 +20,10 @@
 	},
 
 	"permissions": [
+		"notifications",
 		"storage",
 		"*://*.wikipedia.org/*",
+		"*://*.mediawiki.org/*",
 		"*://*.wikia.com/*"
 	],
 	"background": {
@@ -31,6 +33,7 @@
 		{
 			"matches": [
 				"*://*.wikipedia.org/*",
+				"*://*.mediawiki.org/*",
 				"*://*.wikia.com/*"
 			],
 			"match_about_blank": false,

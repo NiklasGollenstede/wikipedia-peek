@@ -9,7 +9,7 @@ const {
 
 spawn(function*() {
 
-const { join, relative, resolve, dirname, } = require('path');
+const { join, relative, resolve, dirname, basename, } = require('path');
 
 const [ _package, _manifest, ] = (yield Promise.all([ FS.readFile('package.json', 'utf8'), FS.readFile('manifest.json', 'utf8'), ])).map(JSON.parse);
 [ 'title', 'version', 'author', ]
@@ -25,6 +25,7 @@ const include = {
 		'common/',
 		'content/',
 		'ui/',
+		'update/',
 		'icon.png',
 		'LICENSE',
 		'manifest.json',
@@ -42,19 +43,22 @@ const include = {
 			'network.js',
 			'index.js',
 		],
-		'web-ext-utils': {
-			'.': [ 'utils.js', ],
-			chrome: [
-				'index.js',
-			],
-			options: [
-				'index.js',
-				'editor.js',
-				'editor-layout.css',
-			],
-		},
+		'web-ext-utils': [
+			'utils.js',
+			'chrome/',
+			'options/',
+			'update/',
+		],
 	},
 };
+
+(yield promisify(require('fs-extra').writeJson)(
+	'./update/versions.json',
+	(yield FS.readdir(resolve(__dirname, 'update')))
+	.map(path => basename(path))
+	.filter(name => (/^\d+\.\d+\.\d+\.js$/).test(name))
+	.map(_=>_.slice(0, -3))
+));
 
 const paths = [ ];
 function addPaths(prefix, module) {
@@ -66,7 +70,7 @@ addPaths('.', include);
 
 const copy = promisify(require('fs-extra').copy);
 const remove = promisify(require('fs-extra').remove);
-(yield Promise.all(paths.map(path => copy(path, join('tmp', path)))));
+(yield Promise.all(paths.map(path => copy(path, join('tmp', path)).catch(error => console.error('Skipping missing file/folder "'+ path +'"')))));
 
 // (yield execute('web-ext', [ '--source-dir', './tmp', '--artifacts-dir', '.', ]));
 (yield execute('web-ext build --source-dir ./tmp --artifacts-dir .', { env: process.env, }));
@@ -75,4 +79,4 @@ const remove = promisify(require('fs-extra').remove);
 
 })
 .then(() => console.log('Build done'))
-.catch(error => console.error('Error during build', error.stack || error) === process.exit(-1));
+.catch(error => console.error('Error during build:', error.stack || error) === process.exit(-1));

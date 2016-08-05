@@ -3,6 +3,7 @@
 	"-W002": false, // Value of '{cought exception}' may be overwritten in IE 8 and earlier.
 	"-W006": false, // Confusing minuses.
 	"-W030": false, // Expected an assignment or function call and instead saw an expression.
+	"-W034": false, // Unnecessary directive "use strict".
 	"-W054": false, // The Function constructor is a form of eval.
 	"-W058": false, // Missing '()' invoking a constructor.
 	"-W078": false, // Setter is defined without getter.
@@ -19,7 +20,7 @@
 	"sub": true, // allow headers['DNT'] instead of headers.DNT
 
 	"esversion": 6,
-	"strict": true,
+	"strict": "implied", // 'use strict' is implicit for functions with non-simple parameter lists, but jshint doesn't get that
 	"globalstrict": true,
 	"latedef": "nofunc",
 
