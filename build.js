@@ -72,8 +72,7 @@ const copy = promisify(require('fs-extra').copy);
 const remove = promisify(require('fs-extra').remove);
 (yield Promise.all(paths.map(path => copy(path, join('tmp', path)).catch(error => console.error('Skipping missing file/folder "'+ path +'"')))));
 
-// (yield execute('web-ext', [ '--source-dir', './tmp', '--artifacts-dir', '.', ]));
-(yield execute('web-ext build --source-dir ./tmp --artifacts-dir .', { env: process.env, }));
+(yield execute('node '+ resolve(...'/node_modules/web-ext/bin/web-ext'.split(/\//g)) +' build --source-dir ./tmp --artifacts-dir .'));
 
 (yield remove('./tmp'));
 
