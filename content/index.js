@@ -1,5 +1,17 @@
-(function() { 'use strict'; // license: MPL-2.0
+define('content/main', [ // license: MPL-2.0
+	'es6lib',
+	'common/options',
+], function(
+	{
+		concurrent: { async, spawn, sleep, },
+		dom: { addStyle, createElement, once, getParent, },
+		functional: { log, blockEvent, fuzzyMatch, },
+		network: { HttpRequest, },
+	},
+	optionsRoot
+) {
 
+/// constants
 const HOVER_HIDE_DELAY = 800; // ms
 const TOUCH_MODE_TIMEOUT = 500; // ms
 const SPINNER_SIZE = 36; // px
@@ -10,13 +22,6 @@ const articleUrl = /^(https?:\/\/[\w\-\.]{1,63}?(?:\.m)?\.(?:wikipedia\.org|medi
 /// Url encoded title of the current article
 const currentArticle = new RegExp('^'+ (window.location.href.match(articleUrl) || [ '', '', '', ])[2].replace(/[\-\[\]\{\}\(\)\*\+\?\.\,\\\/\^\$\|\#\s]/g, '\\$&') +String.raw`(?:$|\#|\:|\?)`);
 
-const {
-	concurrent: { async, spawn, sleep, },
-	dom: { addStyle, createElement, once, getParent, },
-	functional: { log, blockEvent, fuzzyMatch, },
-	network: { HttpRequest, },
-} = require('es6lib');
-
 /// Array of destructor functions, called when the extension is unloaded (disabled/removed/updated)
 const onUnload = [ ];
 const destroy = window.destroy = function destroy() {
@@ -24,11 +29,16 @@ const destroy = window.destroy = function destroy() {
 };
 chrome.runtime.connect({ name: 'tab', }).onDisconnect.addListener(destroy);
 
-/// Style element whose content is updated whenever the options change
-const style = addStyle(''); onUnload.push(() => style.remove());
+/// web-ext-utils/options/OptionList instance @see /common/options.js
+let options = optionsRoot.children;
+onUnload.push(() => optionsRoot.destroy());
 
 /// returns whether or not the screen has recently been touched and touch friendly behaviour should apply
-let touchMode = () => false;
+let touchMode; options.touchMode.whenChange(
+	mode => touchMode = typeof mode === 'boolean'
+	? () => mode
+	: () => lastTouch && Date.now() - lastTouch < TOUCH_MODE_TIMEOUT
+);
 let lastTouch = 0; const touchEvents = [ 'touchstart', 'touchmove', 'touchend', ];
 touchEvents.forEach(type => document.body.addEventListener(type, onTouch));
 onUnload.push(() => touchEvents.forEach(type => document.body.removeEventListener(type, onTouch)));
@@ -46,18 +56,10 @@ const preventClick = (() => {
 	};
 })();
 
-/// web-ext-utils/options/OptionList instance @see /common/options.js
-let options;
-require('common/options').then(root => {
-	onUnload.push(() => root.destroy());
-	options = root.children;
-	root.onAnyChange(updateCSS);
-	updateCSS();
-	options.touchMode.whenChange(mode => touchMode = typeof mode === 'boolean' ? () => mode : () => {
-		return lastTouch && Date.now() - lastTouch < TOUCH_MODE_TIMEOUT;
-	});
-});
-
+/// Style element whose content is updated whenever the options change
+const style = addStyle(''); onUnload.push(() => style.remove());
+optionsRoot.onAnyChange(updateCSS);
+updateCSS();
 function updateCSS() {
 	let [ , text, background, border, ] = (/([^\s]+);.*?([^\s]+);.*?([^\s]+);$/).exec(options.theme.value) || Array(4).fill('inherit');
 	background === 'inherit' && (background = getComputedStyle(document.body).backgroundColor);
@@ -185,6 +187,7 @@ const Preview = ((title, origin) => {
 			+ '/api/v1/Articles/Details/?abstract=500' // 500 is max
 			+ '&width='+ thumbPx // +'&height='+ thumbPx
 			+ '&titles='+ encodeURIComponent(title);
+			title.includes(',') && console.warn(`The title "${ title }" contains commas and may not load correctly`);
 		} else {
 			this.src = this.origin
 			+ '/w/api.php?action=query&format=json&formatversion=2&redirects='
@@ -473,4 +476,6 @@ function fuzzyFind(array, string) {
 	return array[norms.indexOf(norms.reduce((a, b) => a >= b ? a : b))];
 }
 
-})();
+/* global devicePixelRatio */
+
+});
