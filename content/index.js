@@ -11,6 +11,9 @@ define('content/main', [ // license: MPL-2.0
 	optionsRoot
 ) {
 
+// interesting test pages:
+// https://de.wikipedia.org/wiki/Mittelalter (contains links with redirects from and to titles with non-ascii chars)
+
 /// constants
 const HOVER_HIDE_DELAY = 800; // ms
 const TOUCH_MODE_TIMEOUT = 500; // ms
@@ -186,7 +189,7 @@ const Preview = ((title, origin) => {
 			this.src = this.origin
 			+ '/api/v1/Articles/Details/?abstract=500' // 500 is max
 			+ '&width='+ thumbPx // +'&height='+ thumbPx
-			+ '&titles='+ encodeURIComponent(title);
+			+ '&titles='+ title;
 			title.includes(',') && console.warn(`The title "${ title }" contains commas and may not load correctly`);
 		} else {
 			this.src = this.origin
@@ -194,7 +197,7 @@ const Preview = ((title, origin) => {
 			+ '&prop=extracts|pageimages'
 			+ (this.section ? '' : '&exintro=')
 			+ '&piprop=thumbnail|original&pithumbsize='+ thumbPx
-			+ '&titles='+ encodeURIComponent(title);
+			+ '&titles='+ title;
 		}
 
 		return (cache[key] = HttpRequest({
