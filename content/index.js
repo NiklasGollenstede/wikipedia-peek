@@ -1,5 +1,5 @@
-define('content/main', [ // license: MPL-2.0
-	'es6lib',
+define([ // license: MPL-2.0
+	'node_modules/es6lib/',
 	'common/options',
 ], function(
 	{

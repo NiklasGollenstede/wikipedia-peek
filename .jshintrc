@@ -8,19 +8,20 @@
 	"-W058": false, // Missing '()' invoking a constructor.
 	"-W078": false, // Setter is defined without getter.
 
-	"curly": true,
-	"newcap": false,
-	"undef": false,
-	"eqeqeq": true,
-	"eqnull": true,
-	"laxbreak": true,
-	"validthis": true,
-	"elision": true,
-	"varstmt": true, // enforce 'let' or 'const' instead of 'var'
+	"curly": true, // always require blocks with curly braces in control flow statements
+	"elision": true, // allow empty array entries [ , , ]
+	"eqeqeq": true, // enforce === instead of ==
+	"eqnull": true, // allow `== null` and `!= null` as exception of 'eqeqeq'
+	"laxbreak": true, // allow 'possibly unsafe line breakings'
+	"loopfunc": true, // allow functions winthin loops
+	"newcap": false, // deprecated
 	"sub": true, // allow headers['DNT'] instead of headers.DNT
+	"undef": true, // warn about not-defined variables
+	"validthis": true,
+	"varstmt": true, // enforce 'let' or 'const' instead of 'var'
 
 	"esversion": 6,
-	"strict": "implied", // 'use strict' is implicit for functions with non-simple parameter lists, but jshint doesn't get that
+	"strict": true, // 'use strict' is neither implicit nor allowed for functions with non-simple parameter lists, must be in outer function
 	"globalstrict": true,
 	"latedef": "nofunc",
 
@@ -28,7 +29,6 @@
 	"devel": true, // console, alert, ...
 
 	"globals": {
-		"chrome": false,
 		"define": false,
 		"require": false
 	}

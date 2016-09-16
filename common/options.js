@@ -1,10 +1,7 @@
-'use strict'; define('common/options', [ // license: MPL-2.0
-	'web-ext-utils/chrome',
-	'web-ext-utils/options',
-], function(
-	{ storage: Storage, },
-	Options
-) {
+(() => { 'use strict'; define(function*({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	'node_modules/web-ext-utils/options/': Options,
+	'node_modules/web-ext-utils/chrome/': { Storage, },
+}) {
 
 const model = [
 	{
@@ -79,10 +76,10 @@ const model = [
 
 const listerners = new WeakMap;
 
-return new Options({
+const options = (yield new Options({
 	model,
 	prefix: 'options',
-	storage: Storage.sync || Storage.local,
+	storage: Storage.sync,
 	addChangeListener(listener) {
 		const onChanged = changes => Object.keys(changes).forEach(key => key.startsWith('options') && listener(key, changes[key].newValue));
 		listerners.set(listener, onChanged);
@@ -91,10 +88,12 @@ return new Options({
 	removeChangeListener(listener) {
 		const onChanged = listerners.get(listener);
 		listerners.delete(listener);
-		try {
-			Storage.onChanged.removeListener(onChanged);
-		} catch (error) { console.error('Failed to remove storage listener', error); }
+		Storage.onChanged.removeListener(onChanged);
 	},
-});
+}));
 
-});
+options.model = model;
+
+return Object.freeze(options);
+
+}); })();
