@@ -1,15 +1,11 @@
-define([ // license: MPL-2.0
-	'node_modules/es6lib/',
-	'common/options',
-], function(
-	{
-		concurrent: { async, spawn, sleep, },
-		dom: { addStyle, createElement, once, getParent, },
-		functional: { log, blockEvent, fuzzyMatch, },
-		network: { HttpRequest, },
-	},
-	optionsRoot
-) {
+(function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	'node_modules/web-ext-utils/browser/': { runtime, },
+	'node_modules/es6lib/concurrent': { sleep, },
+	'node_modules/es6lib/dom': { addStyle, createElement, getParent, },
+	'node_modules/es6lib/functional': { blockEvent, fuzzyMatch, },
+	'node_modules/es6lib/network': { HttpRequest, },
+	'common/options': optionsRoot,
+}) => {
 
 // interesting test pages:
 // https://de.wikipedia.org/wiki/Mittelalter (contains links with redirects from and to titles with non-ascii chars)
@@ -30,18 +26,18 @@ const onUnload = [ ];
 const destroy = window.destroy = function destroy() {
 	onUnload.forEach(destroy => { try { destroy(); } catch (error) { console.error(error); } });
 };
-chrome.runtime.connect({ name: 'tab', }).onDisconnect.addListener(destroy);
+runtime.connect({ name: 'tab', }).onDisconnect.addListener(destroy);
 
 /// web-ext-utils/options/OptionList instance @see /common/options.js
-let options = optionsRoot.children;
+const options = optionsRoot.children;
 onUnload.push(() => optionsRoot.destroy());
 
 /// returns whether or not the screen has recently been touched and touch friendly behaviour should apply
-let touchMode; options.touchMode.whenChange(
-	mode => touchMode = typeof mode === 'boolean'
+let touchMode; options.touchMode.whenChange(mode => (
+	touchMode = typeof mode === 'boolean'
 	? () => mode
 	: () => lastTouch && Date.now() - lastTouch < TOUCH_MODE_TIMEOUT
-);
+));
 let lastTouch = 0; const touchEvents = [ 'touchstart', 'touchmove', 'touchend', ];
 touchEvents.forEach(type => document.body.addEventListener(type, onTouch));
 onUnload.push(() => touchEvents.forEach(type => document.body.removeEventListener(type, onTouch)));
@@ -174,7 +170,7 @@ function updateCSS() {
  * @param {string}  title   The url encoded title of the article
  * @param {string}  origin  The origin to query, defaults to location.origin
  */
-const Preview = ((title, origin) => {
+const Preview = (() => {
 	const cache = { };
 	return function Preview(title, origin) {
 		const key = (origin || '') +'?'+ title;
@@ -228,11 +224,11 @@ const Preview = ((title, origin) => {
 							.filter(_=>_.type === 'paragraph')
 							.map(({ text, }) => `<p>${ text }</p>`).join('')
 						);
-						return finish.call(this);
+						return Finish.call(this);
 					});
 				} else {
 					this.html = sanatize(`<p>${ page.abstract }</p>`);
-					return finish.call(this);
+					return Finish.call(this);
 				}
 			} else {
 				const page = this.page = response.query.pages[0];
@@ -246,10 +242,10 @@ const Preview = ((title, origin) => {
 
 				thumb = options.thumb.value && page.thumbnail;
 				this.html = sanatize(extractSection(page.extract, this.section).replace(/<p>\s*<\/p>/, ''));
-				return finish.call(this);
+				return Finish.call(this);
 			}
 
-			function finish() {
+			function Finish() {
 				this.thumb = thumb && createElement('img', { src: thumb.source, id: 'user-peek-thumb', alt: 'loading...', style: {
 					width: thumb.width / devicePixelRatio +'px', height: thumb.height / devicePixelRatio +'px',
 				}, });
@@ -272,7 +268,7 @@ const Overlay = (function() {
 	const handlers = {
 		click(event) {
 			const target = getParent(event.target, 'a');
-			if (target === currentAnchor || target === pendingAnchor) { }
+			if (target === currentAnchor || target === pendingAnchor) { void 0; }
 			else if (!target.matches || !target.matches('#user-peek-root, #user-peek-root *')) { event.preventDefault(); }
 			else { return; }
 			Overlay.hide();
@@ -376,39 +372,38 @@ const Overlay = (function() {
 /**
  * Primary event listeners. Called when an applicable link is hovered or touched.
  */
-const onMouseEnter = async(function*({ currentTarget: link, }) {
+async function onMouseEnter({ currentTarget: link, }) {
 	if (touchMode()) { return; }
 	const titleAttr = link.title; link.title = '';
-	(yield sleep(options.showDelay.value));
+	(await sleep(options.showDelay.value));
 	if (!link.matches(':hover')) { link.title = titleAttr; return; }
 
 	if (Overlay().loading === link || Overlay().showing === link) { return; }
-	const preview = (yield Overlay().load(link));
+	const preview = (await Overlay().load(link));
 	if (!link.matches(':hover')) { link.title = titleAttr; return; }
 
 	Overlay().show(preview, link);
-
-}, error => console.error(error));
+}
 
 function onTouchEnd(event) {
 	if (
 		event.touches.length !== 0 || event.targetTouches.length !== 0
 		|| event.changedTouches.length !== 1
-		|| event.changedTouches.item(0).target !== this
+		|| event.changedTouches.item(0).target !== event.target
 	) { return; }
 	blockEvent(event);
 	preventClick();
-	showOrNavigate(this);
+	showOrNavigate(event.target);
 }
 
 function onMouseDown(event) {
 	if (event.button || !touchMode()) { return; }
 	preventClick();
-	showOrNavigate(this);
+	showOrNavigate(event.target);
 }
 
 function showOrNavigate(link) {
-	const { title, origin, } = link.dataset;
+	// const { title, origin, } = link.dataset;
 	if (Overlay().loading === link) { return; }
 	if (Overlay().showing === link) { window.location = link.href; return; }
 	Overlay().load(link)
@@ -481,4 +476,4 @@ function fuzzyFind(array, string) {
 
 /* global devicePixelRatio */
 
-});
+}); })(this);

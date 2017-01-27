@@ -12,3 +12,11 @@ Features: <ul>
 This add-ons code is available on <a href="https://github.com/NiklasGollenstede/wikipedia-peek">GitHub</a>. If you have any problems, please report them <a href="https://github.com/NiklasGollenstede/wikipedia-peek/issues">here</a>
 
 The add-on itself does not collect any data. Note however, that the article previews are queried form Wikipedia in a separate query each time you hover over a link long enough.
+
+# How to Build
+
+  - `git clone https://github.com/NiklasGollenstede/wikipedia-peek && cd wikipedia-peek`
+  - `npm install`
+  - `npm start`<br>
+    and temporary load from the `./build/` directory, use the `.zip` file therein<br>
+    or `npm start -- {run:1}` to debug in a new Firefox instance.

@@ -1,7 +1,7 @@
-(() => { 'use strict'; define(function*({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+(function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	'node_modules/web-ext-utils/browser/': { Storage, },
 	'node_modules/web-ext-utils/options/': Options,
-	'node_modules/web-ext-utils/chrome/': { Storage, },
-}) {
+}) => {
 
 const model = [
 	{
@@ -76,7 +76,7 @@ const model = [
 
 const listerners = new WeakMap;
 
-const options = (yield new Options({
+const options = (await new Options({
 	model,
 	prefix: 'options',
 	storage: Storage.sync,
@@ -92,8 +92,8 @@ const options = (yield new Options({
 	},
 }));
 
-options.model = model;
+options.model = Object.freeze(model);
 
-return Object.freeze(options);
+return options;
 
-}); })();
+}); })(this);
