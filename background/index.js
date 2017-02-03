@@ -1,10 +1,11 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/web-ext-utils/browser/': { Tabs, webNavigation, },
-	'node_modules/web-ext-utils/update/': _updated,
+	'node_modules/web-ext-utils/update/': updated,
 	'node_modules/web-ext-utils/utils/': { matchPatternToRegExp, },
 }) => {
 
 // ran updates and listens to content script script load requests
+updated.extension.to.channel === 'b' && console.info('Ran updates', updated); // eslint-disable-line no-console
 
 // the ports are only used by the content scripts to detect unloads
 (global.browser || global.chrome).runtime.onConnect.addListener(() => void 0);
