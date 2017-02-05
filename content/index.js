@@ -1,5 +1,5 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	'node_modules/web-ext-utils/browser/': { runtime, },
+	'node_modules/web-ext-utils/browser/': { runtime, rootUrl, },
 	'node_modules/es6lib/concurrent': { sleep, },
 	'node_modules/es6lib/dom': { addStyle, createElement, getParent, },
 	'node_modules/es6lib/functional': { blockEvent, fuzzyMatch, },
@@ -158,6 +158,14 @@ function updateCSS() {
 			{ display: inline !important; }
 			#user-peek-root math annotation
 			{ display: none !important; }
+		}
+
+		#user-peek-settings-link {
+			float: right;
+			clear: right;
+			font-size: 150%;
+			line-height: 1;
+			cursor: pointer;
 		}
 	`);
 }
@@ -328,6 +336,11 @@ const Overlay = (function() {
 				currentAnchor = anchor;
 				content.textContent = '';
 				preview.thumb && content.appendChild(preview.thumb);
+				rootUrl.startsWith('moz') && ('ontouchstart' in window) && content.appendChild(createElement('div', {
+					id: 'user-peek-settings-link',
+					onclick: () => prompt('To open the settings page, please copy the URL below and open it in a new tab.\nThis is the best Firefox currently allows.', rootUrl +'node_modules/web-ext-utils/options/editor/inline.html'),
+					textContent: '⚙',
+				}));
 				content.appendChild(preview.content);
 				content.style.minHeight = preview.minHeight +'px';
 				content.preview = preview;
@@ -404,7 +417,7 @@ function onMouseDown(event) {
 
 function showOrNavigate(link) {
 	// const { title, origin, } = link.dataset;
-	if (Overlay().loading === link) { return; }
+	if (Overlay().loading === link) { window.location = link.href; return; }
 	if (Overlay().showing === link) { window.location = link.href; return; }
 	Overlay().load(link)
 	.then(preview => !Overlay().show(preview, link));

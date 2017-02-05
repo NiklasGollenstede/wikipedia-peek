@@ -11,7 +11,7 @@
 	},
 
 	"dependencies": {
-		"es6lib": "NiklasGollenstede/es6lib#a381f6a",
+		"es6lib": "NiklasGollenstede/es6lib#bd5a358",
 		"web-ext-utils": "NiklasGollenstede/web-ext-utils#2066105",
 		"web-ext-build": "0.0.3"
 	},

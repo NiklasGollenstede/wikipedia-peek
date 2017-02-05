@@ -10,6 +10,31 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 
 	delete manifestJson.browser_action;
 
+	manifestJson.content_scripts = [ {
+		matches: [
+			'*://*.wikipedia.org/*',
+			'*://*.mediawiki.org/*',
+			'*://*.wikia.com/*',
+		],
+		match_about_blank: false,
+		all_frames: false,
+		run_at: 'document_end',
+		js: [
+			'node_modules/es6lib/require.js',
+			'node_modules/es6lib/namespace.js',
+			'node_modules/es6lib/object.js',
+			'node_modules/es6lib/functional.js',
+			'node_modules/es6lib/concurrent.js',
+			'node_modules/es6lib/dom.js',
+			'node_modules/es6lib/network.js',
+			'node_modules/es6lib/index.js',
+			'node_modules/web-ext-utils/browser/index.js',
+			'node_modules/web-ext-utils/options/index.js',
+			'common/options.js',
+			'content/index.js',
+		],
+	}, ];
+
 	files.node_modules = {
 		es6lib: [
 			'template.js',
