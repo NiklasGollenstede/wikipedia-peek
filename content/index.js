@@ -2,7 +2,8 @@
 	'node_modules/web-ext-utils/browser/': { runtime, rootUrl, },
 	'node_modules/es6lib/concurrent': { sleep, },
 	'node_modules/es6lib/dom': { addStyle, createElement, getParent, },
-	'node_modules/es6lib/functional': { blockEvent, fuzzyMatch, },
+	'node_modules/es6lib/functional': { blockEvent, },
+	'node_modules/es6lib/string': { fuzzyMatch, },
 	'node_modules/es6lib/network': { HttpRequest, },
 	'common/options': optionsRoot,
 }) => {
