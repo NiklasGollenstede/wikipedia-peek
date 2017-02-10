@@ -12,7 +12,7 @@
 
 	"dependencies": {
 		"es6lib": "NiklasGollenstede/es6lib#bd5a358",
-		"web-ext-utils": "NiklasGollenstede/web-ext-utils#2066105",
+		"web-ext-utils": "NiklasGollenstede/web-ext-utils#de0360a9220fc27a3d9a3c4c4fbb32288324f20c",
 		"web-ext-build": "0.0.3"
 	},
 	"devDependencies": {

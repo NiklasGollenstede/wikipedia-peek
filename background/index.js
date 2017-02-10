@@ -5,7 +5,7 @@
 }) => {
 
 // ran updates and listens to content script script load requests
-updated.extension.to.channel === 'b' && console.info('Ran updates', updated); // eslint-disable-line no-console
+updated.extension.to.channel !== '' && console.info('Ran updates', updated); // eslint-disable-line no-console
 
 // the ports are only used by the content scripts to detect unloads
 (global.browser || global.chrome).runtime.onConnect.addListener(() => void 0);
@@ -16,7 +16,7 @@ Tabs && (await attachAllContentScripts({ cleanup: () => {
 	delete window.define;
 }, }));
 
-// once fennec supports tabs, the content_scripts and the above attachAllContentScripts can be removed in favor of some variation of the potentially more dynamic approach below
+// once fennec supports tabs (in version 54!!), the content_scripts and the above attachAllContentScripts can be removed in favor of some variation of the potentially more dynamic approach below
 return; /* eslint-disable no-unreachable */
 
 const scripts = [
