@@ -33,6 +33,12 @@ const preventClick = (timeout => () => {
 	}, TOUCH_MODE_TIMEOUT);
 })(0);
 
+const request = (method, ...args) => new Promise((resolve, reject) => runtime.sendMessage([ method, 1, args, ], reply => { try {
+	if (runtime.lastError) { return void reject(runtime.lastError); }
+	const [ , id, [ value, ], ] = reply;
+	(id < 0 ? reject : resolve)(value);
+} catch (error) { reject(error); } }));
+
 /**
  * Goes through all steps of loading a preview and checks if the link is still the target after each step.
  * @param  {Element}  link  The element that the user is currently targeting by hovering it or having tapped it.
@@ -40,15 +46,12 @@ const preventClick = (timeout => () => {
  */
 async function showForElement(link, wait) { try {
 
+	// wait
 	currentTarget = link;
 	wait && (await sleep(showDelay));
 	if (currentTarget !== link) { return; }
 
-	const getPreview = new Promise((resolve, reject) => runtime.sendMessage([ 'getPreview', 1, [ link.href, ], ], reply => { try {
-		if (runtime.lastError) { return void reject(runtime.lastError); }
-		const [ , id, [ value, ], ] = reply;
-		(id < 0 ? reject : resolve)(value);
-	} catch (error) { reject(error); } }));
+	const getPreview = request('getPreview', link.href);
 	if (!overlay) { global.overlay = overlay = (await require.async('./overlay')); }
 	if (currentTarget !== link) { return; }
 

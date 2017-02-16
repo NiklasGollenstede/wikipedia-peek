@@ -24,7 +24,7 @@ return {
 		path = path.join('/');
 		const section = url.hash.slice(1);
 		return {
-			cacheKey: origin +'$'+ path +'?'+ title +'#'+ section,
+			key: origin +'$'+ path +'?'+ title +'#'+ section,
 			arg: { origin, path, title, section, },
 		};
 	},

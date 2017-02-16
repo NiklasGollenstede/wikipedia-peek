@@ -47,21 +47,21 @@ return {
 				// && (normalized = loader.normalize(url))
 			) { break found; }
 		} return { }; }
-		const cacheKey = 'cache$'+ normalized.cacheKey, { arg, } = normalized;
+		const { key, arg, } = normalized;
 
 		// read cache
 //		const cached = allowCached && (await Storage.local.get(cacheKey))[cacheKey]; if (cached) {
 //			const isStale = cached.from + cached.for < Date.now();
 //			if (!isStale || allowStale) { return { content: cached.content, cached: true, stale: isStale, }; }
 //		}
-		if (memCache[cacheKey]) { return { content: memCache[cacheKey], cached: true, stale: false, }; }
+		if (memCache[key]) { return { content: memCache[key], cached: true, stale: false, }; }
 
 
 		const { content, /*cache,*/ } = (await loader.load(arg));
 //		console.log('preview', content.length);
 
 		// write cache
-		memCache[cacheKey] = content;
+		memCache[key] = content;
 
 		return { content, cached: false, stale: false, };
 	} catch(error) {

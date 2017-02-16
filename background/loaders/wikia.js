@@ -18,7 +18,7 @@ return {
 		const section = url.hash.slice(1);
 		const host = url.host;
 		return {
-			cacheKey: host +'/'+ title +'#'+ section,
+			key: host +'/'+ title +'#'+ section,
 			arg: { host, title, section, },
 		};
 	},

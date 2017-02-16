@@ -132,8 +132,8 @@ if (!inContent) {
 					input: { type: 'string', default: '', },
 				},
 				normalize: {
-					description: `Stateless function normalizing the raw links matched by any of the patterns above to an object <var>{ cacheKey, arg, }</var>.<br>
-						<var>cacheKey</var> is used to store and load results from the cache instead of the raw URL, to allow multiple URLs to point to the same object.<br>
+					description: `Stateless function normalizing the raw links matched by any of the patterns above to an object <var>{ key, arg, }</var>.<br>
+						<var>key</var> is the normalized identifier of the resource <var>url</var> points to. Used e.g. for the caching.<br>
 						<var>arg</var> is a JSONable object that is passed to the actual loader, see the comment in the function for details.<br>
 						Returns <var>null</var> to opt out for this url.<br>
 						<br>
