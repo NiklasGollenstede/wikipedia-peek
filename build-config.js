@@ -8,33 +8,7 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 		'*://*/*'
 	);
 
-	delete manifestJson.browser_action;
-
-	manifestJson.content_scripts = [ {
-		matches: [
-			'*://*.wikipedia.org/*',
-			'*://*.mediawiki.org/*',
-			'*://*.wikia.com/*',
-		],
-		match_about_blank: false,
-		all_frames: false,
-		run_at: 'document_end',
-		js: [
-			'node_modules/es6lib/require.js',
-			'node_modules/es6lib/concurrent.js',
-			'node_modules/es6lib/dom.js',
-			'node_modules/es6lib/functional.js',
-			'node_modules/es6lib/namespace.js',
-			'node_modules/es6lib/network.js',
-			'node_modules/es6lib/object.js',
-			'node_modules/es6lib/string.js',
-			'node_modules/es6lib/index.js',
-			'node_modules/web-ext-utils/browser/index.js',
-			'node_modules/web-ext-utils/options/index.js',
-			'common/options.js',
-			'content/index.js',
-		],
-	}, ];
+	manifestJson.content_security_policy = `script-src 'self' 'unsafe-eval'; object-src 'self';`; // wow, Firefox doesn't support sandboxing, so the only alternative is to allow eval -.-
 
 	files.node_modules = {
 		es6lib: [
@@ -51,9 +25,9 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 			'string.js',
 		],
 		'web-ext-utils': {
-			browser: [
-				'index.js',
-				'version.js',
+			'.': [
+				'browser/',
+				'loader/',
 			],
 			options: {
 				'.': [ 'index.js', ],
