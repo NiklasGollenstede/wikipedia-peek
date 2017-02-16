@@ -21,8 +21,8 @@ const sandbox = (await makeSandbox(port => {
 }));
 
 options.loaders.children.forEach(loader => {
-	loader.children.includes.whenChange(value => {
-		try { loader.model.loader.includes = parseMatchPatterns(value.split(' ')); } catch (error) { reportError(`Invalid URL pattern`, error); throw error; }
+	loader.children.includes.whenChange((_, { current, }) => {
+		try { loader.model.loader.includes = parseMatchPatterns(current); } catch (error) { reportError(`Invalid URL pattern`, error); throw error; }
 	});
 	loader.children.normalize.whenChange(async value => {
 		try { (await sandbox.request('setNormalize', loader.name, value)); } catch (error) { reportError(`Could not compile normalizer for "${ loader.name }"`, error); throw error; }

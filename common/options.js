@@ -3,8 +3,6 @@
 	'node_modules/web-ext-utils/options/': Options,
 }) => {
 
-const pattern = String.raw`(?:\^.*\$|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/([^\ ]*)))`;
-
 const model = {
 	include: {
 		title: 'Included Sites',
@@ -21,13 +19,10 @@ const model = {
 		expanded: false,
 		maxLength: Infinity,
 		default: [ 'https://*.wikipedia.org/*', 'https://*.mediawiki.org/*', 'https://*.wikia.com/*', ],
-		restrict: {
-			match: {
-				exp: new RegExp(`^${ pattern }$`, 'i'),
-				message: `Each pattern must be of the form <scheme>://<host>/<path> or be framed with '^' and '$'`,
-			},
-			unique: '.',
-		},
+		restrict: { unique: '.', match: {
+			exp: (/^(?:\^.*\$|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/([^\ ]*)))$/i),
+			message: `Each pattern must be of the form <scheme>://<host>/<path> or be framed with '^' and '$'`,
+		}, },
 		input: { type: 'string', default: 'https://*.wikipedia.org/*', },
 	},
 	thumb: {
@@ -127,13 +122,14 @@ if (!inContent) {
 			default: true,
 			children: {
 				includes: {
-					description: `Space separated list of include patterns (see Included Sites) matching URLs for which this loader will be considered`,
-					default: loader.includes.join(' '),
-					restrict: { match: {
-						exp: new RegExp(`^${ pattern }(?: ${ pattern })*$`, 'i'),
-						message: `Must be a space separated list of includes, see Included Sites`,
+					description: `List of include patterns (see Included Sites) matching URLs for which this loader will be considered`,
+					maxLength: Infinity,
+					default: loader.includes,
+					restrict: { unique: '.', match: {
+						exp: (/^(?:\^.*\$|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/([^\ ]*)))$/i),
+						message: `Each pattern must be of the form <scheme>://<host>/<path> or be framed with '^' and '$'`,
 					}, },
-					input: { type: 'string', style: { display: 'block', marginBottom: '3px', }, },
+					input: { type: 'string', default: '', },
 				},
 				normalize: {
 					description: `Stateless function normalizing the raw links matched by any of the patterns above to an object <var>{ cacheKey, arg, }</var>.<br>
