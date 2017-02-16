@@ -11,9 +11,9 @@
 	},
 
 	"dependencies": {
-		"web-ext-build": "0.0.3"
 		"es6lib": "NiklasGollenstede/es6lib#f28fd785c5c770adbc4603ae01470ed7d4476021",
-		"web-ext-utils": "NiklasGollenstede/web-ext-utils#43e32ae650bf0400a6f2ebc4e247f16935c07d1a",
+		"web-ext-build": "0.0.3",
+		"web-ext-utils": "NiklasGollenstede/web-ext-utils#43e32ae650bf0400a6f2ebc4e247f16935c07d1a"
 	},
 	"devDependencies": {
 		"babel-eslint": "7.1.1",

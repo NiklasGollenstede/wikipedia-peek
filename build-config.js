@@ -8,7 +8,7 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 		'*://*/*'
 	);
 
-	manifestJson.content_security_policy = `script-src 'self' 'unsafe-eval'; object-src 'self';`; // wow, Firefox doesn't support sandboxing, so the only alternative is to allow eval -.-
+	manifestJson.content_security_policy = `script-src 'self' 'unsafe-eval' 'sha256-QMSw9XSc08mdsgM/uQhEe2bXMSqOw4JvoBdpHZG21ps='; object-src 'self';`; // see common/sandbox.js
 
 	files.node_modules = {
 		es6lib: [

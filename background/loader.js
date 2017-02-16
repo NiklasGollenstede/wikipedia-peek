@@ -1,21 +1,10 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	'node_modules/es6lib/port': Port,
-//	'node_modules/web-ext-utils/browser/': { Storage, },
-	'node_modules/web-ext-utils/browser/version': { gecko, },
 	'node_modules/web-ext-utils/utils/': { reportError, },
 	'node_modules/web-ext-utils/utils/files': { readDir, },
 	'node_modules/web-ext-utils/loader/': { parseMatchPatterns, },
 	'common/sandbox': makeSandbox,
 	'common/options': options,
 }) => {
-
-makeSandbox = !gecko ? makeSandbox
-: init => { // Skip sandboxing and directly evaluate here. Only meant as a temporary fix to use this API in Firefox.
-	console.warn(`Firefox doesn't support sandboxing in WebExtensions, will evaluate directly!`);
-	const { port1, port2, } = new MessageChannel;
-	init(new Port(port2, Port.MessagePort));
-	return new Port(port1, Port.MessagePort);
-};
 
 const sandbox = (await makeSandbox(port => {
 	const FunctionCtor = (x=>x).constructor;
