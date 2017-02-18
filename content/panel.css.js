@@ -1,6 +1,6 @@
 void define(`
 
-* {
+*, *::before, *::after {
 	box-sizing: border-box;
 }
 
@@ -52,8 +52,16 @@ body {
 	top: calc(50% - .5em);
 	width: 1em; height: 1em;
 	margin: 0; padding: 0;
+}
+.loading .load-spinner::before, .load-spinner.loading::before {
+	content: '';
+	position: absolute;
+	left: calc(50% - .5em);
+	top: calc(50% - .5em);
+	width: 1em; height: 1em;
+	margin: 0; padding: 0;
 	border-radius: 50%;
-	border: 4px solid rgba(190, 190, 190, 0.8);
+	border: .1em solid rgba(190, 190, 190, 0.8);
 	border-left-color: rgba(100, 100, 100, 0.8);
 	animation: spin .8s infinite cubic-bezier(.3,.6,.8,.5);
 }

@@ -9,8 +9,8 @@ const TOUCH_MODE_TIMEOUT = 500; // ms
 const {
 	touchMode = 'auto',
 	showDelay = 500,
-} = module.config() || { };
-let currentTarget = null; // the link that is currently being processed
+} = module.config() || { }; // TODO: actually set these
+let loading = null; // the link that is currently being loaded for
 let overlay = null; /* require.async('./overlay') */
 
 
@@ -44,39 +44,51 @@ const request = (method, ...args) => new Promise((resolve, reject) => runtime.se
  * @param  {Element}  link  The element that the user is currently targeting by hovering it or having tapped it.
  * @param  {boolean}  wait  Whether to wait showDelay before taking further steps.
  */
-async function showForElement(link, wait) { try {
+async function showForElement(link, wait) {
+	if (loading === link || overlay && overlay.target === link && overlay.state !== 'hidden') { return; } loading = link;
+	let canceled; const cancel = () => { canceled = true; loading = null; };
+	try {
+		link.addEventListener('mouseleave', cancel);
+		document.addEventListener('click', cancel);
 
-	// wait
-	currentTarget = link;
-	wait && (await sleep(showDelay));
-	if (currentTarget !== link) { return; }
+		// on hover, wait a bit
+		wait && (await sleep(showDelay));
+		if (canceled) { return; }
 
-	const getPreview = request('getPreview', link.href);
-	if (!overlay) { global.overlay = overlay = (await require.async('./overlay')); }
-	if (currentTarget !== link) { return; }
+		// start loading
+		const getPreview = request('getPreview', link.href);
+		let gotPreview = false; getPreview.then(() => (gotPreview = true));
 
-	overlay.loading(link);
-	const { content, } = (await getPreview);
-	if (!content || currentTarget !== link) { overlay.cancel(link); return; }
+		// show loading animation
+		if (!overlay) { global.overlay = overlay = (await require.async('./overlay')); }
+		else { (await sleep(100)); } // give the cache a bit of time to respond before showing the spinner
+		if (canceled) { return; }
+		if (!gotPreview) {
+			(await overlay.loading(link));
+			if (canceled) { overlay.cancel(link); return; }
+		}
 
-	overlay.show(link, content);
+		const { content, } = (await getPreview);
+		if (!content || canceled) { overlay.cancel(link); return; }
 
-} catch (error) {
-	console.error(error);
-	overlay && overlay.cancel(link);
-} }
+		loading = null;
+		(await overlay.show(link, content));
+
+	} catch (error) {
+		console.error(error);
+		overlay && overlay.cancel(link);
+	} finally {
+		link.removeEventListener('mouseleave', cancel);
+		document.removeEventListener('click', cancel);
+	}
+}
 
 /**
  * Primary event listeners. Called when an applicable link is hovered or touched.
  */
 function onMouseMove({ target: link, }) {
-	if (!link.matches || !link.matches('a') || currentTarget === link || inTouchMode()) { return; }
+	if (!link.matches || !link.matches('a') || inTouchMode()) { return; }
 	showForElement(link, true);
-	link.addEventListener('mouseleave', function onMouseLeave(event) {
-		if (event.target !== link) { return; }
-		currentTarget = null; // cancel
-		link.removeEventListener('mouseleave', onMouseLeave);
-	});
 }
 function onTouchEnd(event) {
 	if (
@@ -84,19 +96,14 @@ function onTouchEnd(event) {
 		|| event.changedTouches.length !== 1
 		|| event.changedTouches.item(0).target !== event.target
 	) { return; }
-	const link = event.target.closest('a');
-	if (link === currentTarget) { return; }
-	if (!link) { currentTarget = null; overlay && overlay.hide(); return; }
+	const link = event.target.closest('a'); if (!link) { return; }
 	blockEvent(event);
 	preventClick();
 	showForElement(link, false);
 }
 function onMouseDown(event) {
-	if (event.button) { return; }
-	if (!inTouchMode()) { currentTarget = null; overlay && overlay.hide(); return; }
-	const link = event.target.closest('a');
-	if (link === currentTarget) { return; }
-	if (!link) { currentTarget = null; overlay && overlay.hide(); return; }
+	if (event.button || !inTouchMode()) { return; }
+	const link = event.target.closest('a'); if (!link) { return; }
 	preventClick();
 	showForElement(link, false);
 }

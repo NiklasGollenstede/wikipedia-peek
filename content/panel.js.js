@@ -11,33 +11,26 @@ port.addHandlers({
 		background.backgroundColor = style.backgroundColor;
 		background.borderColor = style.color;
 		background.opacity = (1 - style.transparency / 100);
-		setSize();
+		return { width: element.scrollWidth, height: element.scrollHeight, };
 	},
 	loading() { // console.log('panel loading');
 		document.querySelector('#content').innerHTML = '';
 		document.body.classList.add('loading');
-	},
-	cancel() { // console.log('panel cancel');
-		document.querySelector('#content').innerHTML = '';
-		document.body.classList.remove('loading');
+		const spinner = document.querySelector('#spinner');
+		return { width: spinner.clientWidth, height: spinner.clientHeight, };
 	},
 	show(content, maxWidth) { // console.log('panel show', maxWidth);
 		const element = document.querySelector('#content');
 		element.style.maxWidth = maxWidth +'px';
 		element.innerHTML = content;
 		document.body.classList.remove('loading');
-		setSize();
+		return { width: element.scrollWidth, height: element.scrollHeight, };
 	},
 	hide() { // console.log('panel hide');
 		document.querySelector('#content').innerHTML = '';
 		document.body.classList.remove('loading');
 	},
 });
-
-function setSize() {
-	const element = document.body;
-	port.post('setSize', element.scrollWidth + 2, element.scrollHeight + 2);
-}
 
 window.port = port;
 
