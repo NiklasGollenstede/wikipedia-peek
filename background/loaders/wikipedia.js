@@ -43,7 +43,7 @@ return {
 		);
 
 		const { response, } = (await HttpRequest({ src, responseType: 'json', }));
-		const redirect = response.query.redirects && response.query.redirects[0] || { };
+		const aliases = [ ], redirect = response.query.redirects && response.query.redirects[0] || { };
 		if (redirect.tofragment) { if (section) {
 			section = redirect.tofragment;
 			aliases.push('https://'+ origin +'/wiki/'+ title +'#'+ redirect.tofragment);
@@ -51,7 +51,6 @@ return {
 			return { redirect: 'https://'+ origin +'/wiki/'+ redirect.to +'#'+ redirect.tofragment, };
 		} }
 
-		const aliases = [ ];
 		const page = response.query.pages[0];
 
 		const thumb = options.thumb.value && page.thumbnail;

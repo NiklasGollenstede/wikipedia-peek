@@ -2,35 +2,27 @@
 	'node_modules/web-ext-utils/utils/': { reportError, },
 	'node_modules/web-ext-utils/utils/files': { readDir, },
 	'node_modules/web-ext-utils/loader/': { parseMatchPatterns, },
-	'common/sandbox': makeSandbox,
 	'common/options': options,
+	Evaluator,
 }) => {
 
-const sandbox = (await makeSandbox(port => {
-	const FunctionCtor = (x=>x).constructor;
-	const normalize = { };
-	port.addHandlers({
-		setNormalize(loader, code) {
-			normalize[loader] = () => { throw new Error(`Could not compile normalize function for loader "${ loader }"`); };
-			normalize[loader] = new FunctionCtor('url', code);
-		},
-		callNormalize(loader, url) {
-			return normalize[loader](url);
-		},
-	});
-}));
+const loaders = (await Promise.all(readDir('background/loaders').map(name => require.async('background/loaders/'+ name.slice(0, -3)))));
+loaders.forEach(loader => (loaders[loader.name] = loader));
 
-options.loaders.children.forEach(loader => {
-	loader.children.includes.whenChange((_, { current, }) => {
-		try { loader.model.loader.includes = parseMatchPatterns(current); } catch (error) { reportError(`Invalid URL pattern`, error); throw error; }
-	});
-	loader.children.normalize.whenChange(async value => {
-		try { (await sandbox.request('setNormalize', loader.name, value)); } catch (error) { reportError(`Could not compile normalizer for "${ loader.name }"`, error); throw error; }
-	});
+const evaluator = new Evaluator;
+
+options.loaders.children.forEach(({ children: options, name, }) => {
+	const loader = loaders[name], { normalize, } = loader;
+	options.includes.whenChange((_, { current, }) => { try {
+		loader.includes = parseMatchPatterns(current);
+	} catch (error) { reportError(`Invalid URL pattern`, error); throw error; } });
+	options.normalize.whenChange(async value => { try {
+		loader.normalize.destroy && loader.normalize.destroy();
+		loader.normalize = options.normalize.values.isSet
+		? evaluator.newFunction('url', value) : normalize;
+	} catch (error) { reportError(`Could not compile normalizer for "${ loader.name }"`, error); throw error; } });
 });
 
-
-const loaders = (await Promise.all(readDir('background/loaders').map(name => require.async('background/loaders/'+ name.slice(0, -3)))));
 
 const memCache = { };
 
@@ -43,8 +35,7 @@ return {
 		let loader, normalized = null; found: { for (loader of loaders) {
 			if (
 				loader.includes.some(_=>_.test(url))
-				&& (normalized = (await sandbox.request('callNormalize', loader.name, url)))
-				// && (normalized = loader.normalize(url))
+				&& (normalized = (await loader.normalize(url)))
 			) { break found; }
 		} return { }; }
 		const { key, arg, } = normalized;

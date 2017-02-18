@@ -1,4 +1,4 @@
-(function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+(function(global) { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/port': Port,
 	'node_modules/web-ext-utils/browser/': { rootUrl, inContent, },
 	'node_modules/web-ext-utils/browser/version': { gecko, },
@@ -24,9 +24,9 @@ async function makeSandbox(init, {
 	host = document.head,
 } = { }) {
 
-	const script = `${ strict ? "'use strict'; " : '' }(async Port => window.addEventListener('message', function onMessage(event) {\
-	const port = new Port(event.ports[0], Port.MessagePort); window.removeEventListener('message', onMessage); (${ init })(port);\
-	}))((${ require.cache['node_modules/es6lib/port'].factory })());//# sourceURL=${ srcUrl }`;
+	const script = `${ strict ? "'use strict'; " : '' }(async Port => window.addEventListener('message', function onMessage(event) { \
+const port = new Port(event.ports[0], Port.MessagePort); window.removeEventListener('message', onMessage); (${ init })(port); \
+}))((${ require.cache['node_modules/es6lib/port'].factory })());\n//# sourceURL=${ srcUrl }\n`;
 
 	if (gecko && !inContent) { // Firefox doesn't allow inline scripts in the extension pages,
 		// so the code inside the script itself is allowed by 'sha256-QMSw9XSc08mdsgM/uQhEe2bXMSqOw4JvoBdpHZG21ps=', the eval() needs 'unsafe-eval'
