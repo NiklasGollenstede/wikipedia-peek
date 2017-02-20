@@ -4,35 +4,34 @@
 	module,
 }) => {
 
-return {
+let allOptions; require.async('common/options').then(_ => {
+	allOptions = _;
+});
+
+const Self = {
 	name: module.id.split('/').pop(),
 	title: `Wikia.com`,
 	description: ``,
 
-	includes: [ 'https://*.wikia.com/wiki/*', ], // user editable, will be replaced by RegExps
+	priority: 1,
+	includes: [ '*://*.wikia.com/wiki/*', ],
 
-	normalize(url) { // user editable, will be executed in a sandbox
+	async load(url) {
 		url = new URL(url);
 		const title = url.pathname.replace(/^\/(?:wiki\/)?/, '');
-		if (url.search || title.includes(':')) { return null; }
+		if (url.search /*|| title.includes(':')*/) { return null; }
 		const section = url.hash.slice(1);
-		const host = url.host;
-		return {
-			key: host +'/'+ title +'#'+ section,
-			arg: { host, title, section, },
-		};
+		return Self.doLoad('https://'+ url.host +'/api', title, section); // always use https
 	},
 
-	async load({ host, title, section, }) {
+	async doLoad(api, title, section) {
 
-		const options = require('common/options');
-		const thumbPx = options.thumb.children.size.value * devicePixelRatio;
+		const thumbPx = allOptions.thumb.children.size.value * devicePixelRatio;
 
 		title.includes(',') && console.warn(`The title "${ title }" contains commas and may not load correctly`);
 
 		const src = (
-			'https://'+ host
-			+'/api/v1/Articles/Details/?abstract=500' // 500 is max
+			api +'/v1/Articles/Details/?abstract=500' // 500 is max
 			+ '&width='+ thumbPx // +'&height='+ thumbPx
 			+ '&titles='+ title
 		);
@@ -40,17 +39,18 @@ return {
 		const { response, } = (await HttpRequest({ src, responseType: 'json', }));
 		const page = response.items[Object.keys(response.items)[0]];
 		if (/^REDIRECT /.test(page.abstract)) {
-			return { redirect: 'https://'+ host +'/wiki/'+ page.abstract.slice(9), };
+			const [ , title, section, ] = (/^(.*?)(?:#.*)?$/).exec(page.abstract.slice('REDIRECT '.length));
+			return Self.doLoad(api, title, section);
 		}
 
-		const thumb = page.thumbnail && {
+		const thumb = allOptions.thumb.value && page.thumbnail && {
 			source: page.thumbnail
 			.replace(/\/x-offset\/\d+/, '/x-offset/0').replace(/\/window-width\/\d+/, '/window-width/'+ page.original_dimensions.width)
 			.replace(/\/y-offset\/\d+/, '/y-offset/0').replace(/\/window-height\/\d+/, '/window-height/'+ page.original_dimensions.height),
 			width: thumbPx, height: (page.original_dimensions.height / page.original_dimensions.width * thumbPx) << 0,
-		};
+		} || { width: 0, height: 0, };
 		let html; if (section) {
-			const { response, } = (await HttpRequest({ src: `https://${ host }/api/v1/Articles/AsSimpleJson?id${ page.id }`, responseType: 'json', }));
+			const { response, } = (await HttpRequest({ src: `${ api }/v1/Articles/AsSimpleJson?id${ page.id }`, responseType: 'json', }));
 			const section = fuzzyFind(response.sections.map(_=>_.title), section.replace(/_/g, ' '));
 			html = response.sections.find(_=>_.title === section).content
 			.filter(_=>_.type === 'paragraph')
@@ -60,13 +60,13 @@ return {
 		}
 		const [ text, length, ] = sanatize(html);
 
-		const minHeight = thumb ? (thumb.height / devicePixelRatio + 20) : 0;
-		const width = Math.sqrt(length * 225 + (thumb ? (thumb.height / devicePixelRatio + 20) * (thumb.width / devicePixelRatio + 20) : 0));
+		const minHeight = thumb.height / devicePixelRatio + 20;
+		const width = Math.sqrt(length * 225 + (thumb.height / devicePixelRatio + 20) * (thumb.width / devicePixelRatio + 20));
 
-		return { cache: {
-			for: 3, // days
-		}, content: article({ width, minHeight, thumb, text, }), };
+		return article({ width, minHeight, thumb, text, });
 	},
 };
+
+return Self;
 
 }); })();

@@ -24,6 +24,12 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 			'require.js',
 			'string.js',
 		],
+		readability: [
+			'Readability.js',
+		],
+		regexpx: [
+			'index.js',
+		],
 		'web-ext-utils': {
 			'.': [
 				'browser/',

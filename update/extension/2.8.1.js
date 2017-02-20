@@ -4,7 +4,8 @@
 }) => {
 
 const style = options.style.children;
-const oldKeys = [ 'options.theme', 'options.fontSize', 'options.relativeWidth', 'options.transparency', ];
+const advanced = options.advanced.children;
+const oldKeys = [ 'options.theme', 'options.fontSize', 'options.relativeWidth', 'options.transparency', 'options.touchMode', 'options.showDelay', ];
 const data = (await Storage.sync.get(oldKeys));
 
 switch (data['options.theme'] && data['options.theme'][0]) {
@@ -17,6 +18,8 @@ switch (data['options.theme'] && data['options.theme'][0]) {
 data['options.fontSize']       && data['options.fontSize'].length       && (style.fontSize.value       = data['options.fontSize'][0]);
 data['options.relativeWidth']  && data['options.relativeWidth'].length  && (style.width.value          = data['options.relativeWidth'][0]);
 data['options.transparency']   && data['options.transparency'].length   && (style.transparency.value   = data['options.transparency'][0]);
+data['options.touchMode']      && data['options.touchMode'].length      && (advanced.touchMode.value   = data['options.touchMode'][0]);
+data['options.showDelay']      && data['options.showDelay'].length      && (advanced.showDelay.value   = data['options.showDelay'][0]);
 
 (await Storage.sync.remove(oldKeys));
 

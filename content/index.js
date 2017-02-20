@@ -45,8 +45,13 @@ const request = (method, ...args) => new Promise((resolve, reject) => runtime.se
  * @param  {boolean}  wait  Whether to wait showDelay before taking further steps.
  */
 async function showForElement(link, wait) {
+	if (equalExceptHash(link.href, location.href)) { return; }
 	if (loading === link || overlay && overlay.target === link && overlay.state !== 'hidden') { return; } loading = link;
-	let canceled; const cancel = () => { canceled = true; loading = null; };
+	let canceled; const cancel = () => {
+		canceled = true; loading = null;
+		link.removeEventListener('mouseleave', cancel);
+		document.removeEventListener('click', cancel);
+	};
 	try {
 		link.addEventListener('mouseleave', cancel);
 		document.addEventListener('click', cancel);
@@ -68,16 +73,17 @@ async function showForElement(link, wait) {
 			if (canceled) { overlay.cancel(link); return; }
 		}
 
-		const { content, } = (await getPreview);
-		if (!content || canceled) { overlay.cancel(link); return; }
+		const content = (await getPreview);
+		if (canceled) { return; }
 
 		loading = null;
+		if (!content) { return; }
 		(await overlay.show(link, content));
 
 	} catch (error) {
 		console.error(error);
-		overlay && overlay.cancel(link);
 	} finally {
+		overlay && overlay.cancel(link);
 		link.removeEventListener('mouseleave', cancel);
 		document.removeEventListener('click', cancel);
 	}
@@ -87,8 +93,8 @@ async function showForElement(link, wait) {
  * Primary event listeners. Called when an applicable link is hovered or touched.
  */
 function onMouseMove({ target: link, }) {
-	if (!link.matches || !link.matches('a') || inTouchMode()) { return; }
-	showForElement(link, true);
+	if (!link.matches || !link.matches('a, a *') || inTouchMode()) { return; }
+	showForElement(link.closest('a'), true);
 }
 function onTouchEnd(event) {
 	if (
@@ -120,6 +126,16 @@ onUnload.addListener(() => {
 });
 
 return;
+
+function equalExceptHash(a, b) {
+	const ia = a.indexOf('#');
+	const ib = b.indexOf('#');
+	if (ia !== ib && !(
+		   ia < 0 && ib >= 0 && a.length === ib
+		|| ib < 0 && ia >= 0 && b.length === ia
+	)) { return false; }
+	return (ia < 0 ? a : a.slice(0, ia)) === (ib < 0 ? b : b.slice(0, ib));
+}
 
 function sleep(ms) { return new Promise(done => setTimeout(done, ms)); }
 function blockEvent(event) {

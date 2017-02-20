@@ -20,7 +20,7 @@ const model = {
 		maxLength: Infinity,
 		default: [ 'https://*.wikipedia.org/*', 'https://*.mediawiki.org/*', 'https://*.wikia.com/*', ],
 		restrict: { unique: '.', match: {
-			exp: (/^(?:\^.*\$|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/([^\ ]*)))$/i),
+			exp: (/^(?:\^.*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/([^\ ]*)))$/i),
 			message: `Each pattern must be of the form <scheme>://<host>/<path> or be framed with '^' and '$'`,
 		}, },
 		input: { type: 'string', default: 'https://*.wikipedia.org/*', },
@@ -82,70 +82,86 @@ const model = {
 			},
 		},
 	},
-	touchMode: {
-		title: 'Touch Mode',
-		description: `If touch mode is enabled, the previews won't show on hover but on the first click/tap on a link, a second click/tap will navigate.
-		<br>'Auto detect' will dynamically change modes based on the input method (mouse/touch) you use. If this doesn't work in your browser choose 'Always on/off'`,
+	advanced: {
+		title: `Advanced`,
 		expanded: false,
-		default: 'auto',
-		input: { type: 'menulist', options: [
-			{ label: 'Always off',   value: false, },
-			{ label: 'Auto detect',  value: 'auto', },
-			{ label: 'Always on',    value: true, },
-		], },
-	},
-	showDelay: {
-		title: 'Show delay',
-		description: 'Time you have to hover over a link to load the preview',
-		expanded: false,
-		default: 500,
-		restrict: { type: 'number', from: 0, to: 2000, },
-		input: { type: 'integer', suffix: 'milliseconds', },
+		default: true,
+		children: {
+			touchMode: {
+				title: 'Touch Mode',
+				description: `If touch mode is enabled, the previews won't show on hover but on the first click/tap on a link, a second click/tap will navigate.
+				<br>'Auto detect' will dynamically change modes based on the input method (mouse/touch) you use. If this doesn't work in your browser choose 'Always on/off'`,
+				expanded: false,
+				default: 'auto',
+				input: { type: 'menulist', options: [
+					{ label: 'Always off',   value: false, },
+					{ label: 'Auto detect',  value: 'auto', },
+					{ label: 'Always on',    value: true, },
+				], },
+			},
+			showDelay: {
+				title: 'Show delay',
+				description: 'Time you have to hover over a link to load the preview',
+				expanded: false,
+				default: 500,
+				restrict: { type: 'number', from: 0, to: 2000, },
+				input: { type: 'integer', suffix: 'milliseconds', },
+			},
+			resetCache: {
+				title: 'Reset Cache',
+				default: Math.random().toString(32).slice(2),
+				input: { type: 'random', label: 'Reset', },
+			},
+		},
 	},
 };
 
 if (!inContent) {
-	const loaders = { };
+	const children = { };
 	model.loaders = {
 		title: `Content Loader Modules`,
 		expanded: false,
 		default: true,
-		children: loaders,
+		children: children,
 	};
-	const files = (await require.async('node_modules/web-ext-utils/utils/files'));
-	for (const name of files.readDir('background/loaders').map(_=>_.slice(0, -3))) {
-		const loader = (await require.async('background/loaders/'+ name));
-		loaders[name] = {
+	const loaders = (await Promise.all(
+		(await require.async('node_modules/web-ext-utils/utils/files')).readDir('background/loaders')
+		.map(name => require.async('background/loaders/'+ name.slice(0, -3)))
+	)).sort((a, b) => b.priority - a.priority);
+
+	for (const loader of loaders) {
+		const { name, } = loader;
+		children[name] = {
 			title: loader.title,
 			description: loader.description,
 			expanded: false,
 			default: true,
 			children: {
+				priority: {
+					default: loader.priority,
+					restrict: { type: 'number', },
+					input: { type: 'number', prefix: 'Priority:', suffix: 'If multiple loaders match, the ones with higher priority will be used first.', },
+				},
 				includes: {
+					title: 'Include Targets',
 					description: `List of include patterns (see Included Sites) matching URLs for which this loader will be considered`,
 					maxLength: Infinity,
 					default: loader.includes,
 					restrict: { unique: '.', match: {
-						exp: (/^(?:\^.*\$|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/([^\ ]*)))$/i),
+						exp: (/^(?:\^.*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/([^\ ]*)))$/i),
 						message: `Each pattern must be of the form <scheme>://<host>/<path> or be framed with '^' and '$'`,
 					}, },
 					input: { type: 'string', default: '', },
 				},
-				normalize: {
-					description: `Stateless function normalizing the raw links matched by any of the patterns above to an object <var>{ key, arg, }</var>.<br>
-						<var>key</var> is the normalized identifier of the resource <var>url</var> points to. Used e.g. for the caching.<br>
-						<var>arg</var> is a JSONable object that is passed to the actual loader, see the comment in the function for details.<br>
-						Returns <var>null</var> to opt out for this url.<br>
-						<br>
-						function normalize(url : string) {
-					`,
-					default: (loader.normalize+'').split('\n').slice(1, -1).map(_=>_.replace(/^\t\t?/, '')).join('\n'),
-					restrict: { },
-					input: { type: 'code', lang: 'js', suffix: `}`, },
-				},
 			},
 		};
-		Object.defineProperty(loaders[name], 'loader', { value: loader, }); // avoid freezing
+		loader.options && (children[name].children.options = {
+			title: 'Advanced',
+			expanded: false,
+			default: true,
+			children: loader.options,
+		});
+		Object.defineProperty(children[name], 'loader', { value: loader, }); // avoid freezing
 	}
 }
 

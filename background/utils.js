@@ -1,5 +1,7 @@
 (function() { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/string': { fuzzyMatch, },
+	'node_modules/web-ext-utils/utils/': { reportError, },
+	Evaluator,
 }) => {
 
 /**
@@ -51,28 +53,44 @@ function fuzzyFind(array, string) {
 }
 
 
-function article({ width, minHeight, thumb, text, }) { return (
-	`<style>
-		#content { width: ${ width << 0 }px; min-height: ${ minHeight << 0 }px; }
-		article>:first-child { margin-top: 0; }
-		article>:last-child { margin-bottom: 0; }
-		.thumb {
-			float: right;
-			margin: 5px 0 3px 10px;
-		}
-	</style>`
-	+ (thumb ? `<img
-		src="${ thumb.source }" class="thumb" alt="loading..."
-		style="width: ${ thumb.width / devicePixelRatio }px; height: ${ thumb.height / devicePixelRatio }px;"
-	>` : '')
-	+ `<article>${ text }</article>`
-); }
+function article({ width, minHeight, thumb, text, }) {
+	const thumbWidth = thumb.width / devicePixelRatio;
+	if (thumbWidth && width - thumbWidth < 100) { width = thumbWidth + 24; }
+	else if (thumbWidth && width - thumbWidth < 180) { width = thumbWidth + 200; }
+	else if (width < 150) { width = 150; }
+	return (
+		`<style>
+			#content { width: ${ width << 0 }px; min-height: ${ minHeight << 0 }px; }
+			article>:first-child { margin-top: 0; }
+			article>:last-child { margin-bottom: 0; }
+			.thumb {
+				float: right;
+				margin: 3px 3px 3px 10px;
+			}
+		</style>`
+		+ (thumb.source ? `<img
+			src="${ thumb.source }" class="thumb" alt="loading..."
+			style="width: ${ thumbWidth }px; height: ${ thumb.height / devicePixelRatio }px;"
+		>` : '')
+		+ `<article>${ text }</article>`
+	);
+}
+
+
+function setFunctionOnChange(loader, options, func, name = func.name) {
+	options[name].whenChange(async value => { try {
+		loader[name].destroy && loader[name].destroy();
+		loader[name] = options[name].values.isSet
+		? Evaluator.newFunction('url', value) : func;
+	} catch (error) { reportError(`Could not compile "${ name }" for "${ loader.name }"`, error); throw error; } });
+}
 
 return {
 	sanatize,
 	extractSection,
 	fuzzyFind,
 	article,
+	setFunctionOnChange,
 };
 
 }); })();

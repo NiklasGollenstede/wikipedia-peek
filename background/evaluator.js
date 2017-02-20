@@ -1,9 +1,9 @@
-(function(global) { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+(function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'common/sandbox': makeSandbox,
 }) => {
 
 const Self = new WeakMap;
-return class Evaluator {
+class Evaluator {
 	constructor() {
 		return EvaluatorInit.apply(this, arguments);
 	}
@@ -12,13 +12,13 @@ return class Evaluator {
 		return Self.get(this).request('eval', code);
 	}
 
-	async newFunction(...args) {
+	newFunction(...args) {
 		const sandbox = Self.get(this);
-		const { id, length, } = (await sandbox.request('create', ...args));
+		const id = Math.random().toString(32).slice(2);
+		sandbox.post('create', id, ...args);
 		const stub = async function() {
 			return sandbox.request('call', id, ...arguments);
 		};
-		Object.defineProperty(stub, 'length', { value: length, });
 		Object.defineProperty(stub, 'destroy', { value() { Self.get(this) && sandbox.post('destroy', id); }, });
 		return stub;
 	}
@@ -29,7 +29,7 @@ return class Evaluator {
 		sandbox.frame.remove();
 		sandbox.destroy();
 	}
-};
+}
 
 async function EvaluatorInit() {
 	Self.set(this, (await makeSandbox(port => {
@@ -39,8 +39,7 @@ async function EvaluatorInit() {
 			eval(code) {
 				return eval(code);
 			},
-			create(...args) {
-				const id = Math.random().toString(36).slice(2);
+			create(id, ...args) {
 				const func = functions[id] = new FunctionCtor(...args);
 				return { id, length: func.length, };
 			},
@@ -71,6 +70,9 @@ async function EvaluatorInit() {
 			frozen.clear();
 		}
 	})));
+	return this;
 }
+
+return new Evaluator;
 
 }); })(this);
