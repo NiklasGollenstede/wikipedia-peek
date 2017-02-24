@@ -5,7 +5,7 @@
 }) => {
 
 const { runtime, } = (global.browser || global.chrome);
-const TOUCH_MODE_TIMEOUT = 500; // ms
+const TOUCH_MODE_TIMEOUT = 300; // ms
 const {
 	touchMode = 'auto',
 	showDelay = 500,
@@ -45,10 +45,11 @@ const request = (method, ...args) => new Promise((resolve, reject) => runtime.se
  * @param  {boolean}  wait  Whether to wait showDelay before taking further steps.
  */
 async function showForElement(link, wait) {
-	if (equalExceptHash(link.href, location.href)) { return; }
-	if (loading === link || overlay && overlay.target === link && overlay.state !== 'hidden') { return; } loading = link;
-	let canceled; const cancel = () => {
-		canceled = true; loading = null;
+	if (loading === link || overlay && overlay.target === link && overlay.state !== 'hidden') { return; }
+	if (equalExceptHash(link.href, location.href)) { return; } // TODO: ignore data:, blob: javascript:, ...
+	loading = link; let canceled = false; const cancel = () => {
+		loading = null; canceled = true;
+		overlay && overlay.cancel(link);
 		link.removeEventListener('mouseleave', cancel);
 		document.removeEventListener('click', cancel);
 	};
@@ -70,20 +71,20 @@ async function showForElement(link, wait) {
 		if (canceled) { return; }
 		if (!gotPreview) {
 			(await overlay.loading(link));
-			if (canceled) { overlay.cancel(link); return; }
+			if (canceled) { return; }
 		}
 
 		const content = (await getPreview);
 		if (canceled) { return; }
 
 		loading = null;
-		if (!content) { return; }
+		if (!content) { overlay.cancel(link); return; }
 		(await overlay.show(link, content));
 
 	} catch (error) {
 		console.error(error);
-	} finally {
 		overlay && overlay.cancel(link);
+	} finally {
 		link.removeEventListener('mouseleave', cancel);
 		document.removeEventListener('click', cancel);
 	}

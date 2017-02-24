@@ -1,6 +1,6 @@
 (function() { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/network': { HttpRequest, },
-	'background/utils': { sanatize, extractSection, article, setFunctionOnChange, },
+	'background/utils': { extractSection, article, setFunctionOnChange, },
 	module,
 }) => {
 
@@ -32,7 +32,7 @@ const Self = {
 	description: ``,
 
 	priority: 2,
-	includes: [ String.raw`^https://.*\.wiki.*?\.org/wiki/.*$`, 'https://*.mediawiki.org/wiki/*', ],
+	includes: [ '*://*.wikipedia.org/wiki/*', '*://*.mediawiki.org/wiki/*', String.raw`^https?://.*\.wiki[^\.\/]*?\.org/wiki/.*$`,  ],
 	options: {
 		getApiPath: {
 			title: 'getApiPath',
@@ -88,13 +88,9 @@ const Self = {
 		const page = response.query.pages[0];
 
 		const thumb = allOptions.thumb.value && page.thumbnail || { width: 0, height: 0, };
-		const [ text, length, ] = sanatize(extractSection(page.extract || '', section).replace(/<p>\s*<\/p>/, ''));
-		if (!thumb.source && length < 20) { return null; }
+		const html = extractSection(page.extract || '', section).replace(/<p>\s*<\/p>/, '');
 
-		const minHeight = thumb.height / devicePixelRatio + 20;
-		const width = Math.sqrt(length * 225 + (thumb.height / devicePixelRatio + 20) * (thumb.width / devicePixelRatio + 20));
-
-		return article({ width, minHeight, thumb, text, });
+		return article({ html, thumb, });
 	},
 };
 

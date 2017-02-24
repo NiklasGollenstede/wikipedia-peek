@@ -1,6 +1,6 @@
 (function() { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/network': { HttpRequest, },
-	'background/utils': { sanatize, fuzzyFind, article, },
+	'background/utils': { fuzzyFind, article, },
 	module,
 }) => {
 
@@ -37,13 +37,13 @@ const Self = {
 		);
 
 		const { response, } = (await HttpRequest({ src, responseType: 'json', }));
-		const page = response.items[Object.keys(response.items)[0]];
+		const page = response.items[Object.keys(response.items)[0]]; if (!page) { return null; }
 		if (/^REDIRECT /.test(page.abstract)) {
 			const [ , title, section, ] = (/^(.*?)(?:#.*)?$/).exec(page.abstract.slice('REDIRECT '.length));
 			return Self.doLoad(api, title, section);
 		}
 
-		const thumb = allOptions.thumb.value && page.thumbnail && {
+		const thumb = allOptions.thumb.value && page.thumbnail && page.original_dimensions && {
 			source: page.thumbnail
 			.replace(/\/x-offset\/\d+/, '/x-offset/0').replace(/\/window-width\/\d+/, '/window-width/'+ page.original_dimensions.width)
 			.replace(/\/y-offset\/\d+/, '/y-offset/0').replace(/\/window-height\/\d+/, '/window-height/'+ page.original_dimensions.height),
@@ -58,12 +58,8 @@ const Self = {
 		} else {
 			html = `<p>${ page.abstract }</p>`;
 		}
-		const [ text, length, ] = sanatize(html);
 
-		const minHeight = thumb.height / devicePixelRatio + 20;
-		const width = Math.sqrt(length * 225 + (thumb.height / devicePixelRatio + 20) * (thumb.width / devicePixelRatio + 20));
-
-		return article({ width, minHeight, thumb, text, });
+		return article({ html, thumb, });
 	},
 };
 

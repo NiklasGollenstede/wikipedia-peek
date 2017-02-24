@@ -12,7 +12,8 @@ const SPINNER_SIZE = (/SPINNER_SIZE\ ?\*\/\ ?(\d+)px/).exec(css)[1];
 const HOVER_HIDE_DELAY = 230; // ms
 const style = options.style.children;
 // TODO: the page can listen to everything send over this Port, and can even reply
-const port = (await makeSandbox(js, { html, srcUrl: require.toUrl('./panel.js'), host: document.scrollingElement, })); // TODO: this fails on sites with strong CSP, find some kind of fallback
+// TODO: this fails on sites with strong CSP, find some kind of fallback
+const port = (await makeSandbox(js, { html, srcUrl: require.toUrl('./panel.js'), host: document.scrollingElement, }));
 const frame = port.frame;
 let target = null, state = 'hidden';
 
@@ -104,7 +105,6 @@ const Overlay = {
 };
 
 {
-	frame.style.display = 'none';
 	frame.style.position = 'absolute';
 	frame.style.border = 'none';
 	frame.style.transform = 'translateX(-50%)'; // change '.left' to actually mean '.center'

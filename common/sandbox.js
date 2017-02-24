@@ -39,6 +39,7 @@ const port = new Port(event.ports[0], Port.MessagePort); window.removeEventListe
 	const frame = document.createElement('iframe'); {
 		frame.sandbox = sandbox;
 		frame.src = url;
+		frame.style.display = 'none';
 	}
 
 	(await new Promise((resolve, reject) => {

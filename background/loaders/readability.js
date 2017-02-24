@@ -4,7 +4,7 @@ require.config({ shim: { 'node_modules/readability/Readability': { exports: 'Rea
 	'node_modules/regexpx/': RegExpX,
 	'node_modules/web-ext-utils/loader/': { parseMatchPatterns, },
 	'node_modules/web-ext-utils/utils/': { reportError, },
-	'background/utils': { sanatize, article, },
+	'background/utils': { article, },
 	module,
 }) => {
 
@@ -14,6 +14,9 @@ let exclude, options; require.async('common/options').then(_ => {
 		exclude = parseMatchPatterns(current);
 	} catch (error) { reportError(`Invalid URL pattern`, error); throw error; } });
 });
+
+const separators = [ '-', '–', '—', '|', '::', ];
+const lastSegment = RegExpX('n')` \ ${ separators } \ ( . (?! \ ${ separators } \ ) )* $`; // matches from the last space framed separator (inclusive) to the end
 
 const Self = {
 	name: module.id.split('/').pop(),
@@ -40,7 +43,8 @@ const Self = {
 		if (exclude.some(_=>_.test(url))) { return null; }
 		url = new URL(url);
 
-		const { response: document, } = (await HttpRequest({ url, responseType: 'document', }));
+		const { response: document, } = (await HttpRequest({ url, responseType: 'document', }).catch(() => ({ response: null, })));
+		if (!document) { return null; }
 
 		document.querySelectorAll(`
 			.hidden,
@@ -51,17 +55,11 @@ const Self = {
 
 		// TODO: if url.hash, remove everything in the DOM before `#${ url.hash }`?
 
-		const parsed = new Readability({
-			spec: url.href, host: url.host,
-			prePath: url.protocol + "//" + url.host,
-			scheme: url.protocol.substr(0, url.protocol.indexOf(":")),
-			pathBase: url.protocol + "//" + url.host + url.pathname.substr(0, url.pathname.lastIndexOf("/") + 1),
-		}, document).parse();
+		const parsed = new Readability(makeURI(url), document).parse();
+		if (!parsed || !parsed.excerpt) { return null; }
 
-		if (!parsed) { return null; }
-
-		const title = parsed.title.split(/ [-–|] /)[0];
-		let text = parsed.excerpt.replace(/(?:\(\))/, '');
+		const title = parsed.title.replace(lastSegment, ''); // .split(/ (?:-|–|—|\||::) /)[0]; // TODO: only remove the last compartment? (done)
+		let text = parsed.excerpt.replace(/(?: \(\) )/, '');
 
 		const titleAt = text.search(RegExpX('i')`${ title }`);
 		if (titleAt >= 0) {
@@ -70,13 +68,17 @@ const Self = {
 			text = `<p><b>${ title }</b></p><span>${ text }</span>`;
 		}
 
-		const thumb = { width: 0, height: 0, };
-		const width = Math.sqrt(text.length * 225);
-
-		return article({ width, minHeight: 0, thumb, text: sanatize(text)[0], });
+		return article({ html: text, });
 	},
 };
 
 return Self;
+
+function makeURI(url) { return {
+	spec: url.href, host: url.host,
+	prePath: url.protocol + "//" + url.host,
+	scheme: url.protocol.substr(0, url.protocol.indexOf(":")),
+	pathBase: url.protocol + "//" + url.host + url.pathname.substr(0, url.pathname.lastIndexOf("/") + 1),
+}; }
 
 }); })();

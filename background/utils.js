@@ -53,8 +53,12 @@ function fuzzyFind(array, string) {
 }
 
 
-function article({ width, minHeight, thumb, text, }) {
+function article({ html, thumb = { width: 0, height: 0, }, }) {
+	const [ text, length, ] = sanatize(html);
+	if (!thumb.source && length < 20) { return null; }
+	const minHeight = thumb.height / devicePixelRatio + 20;
 	const thumbWidth = thumb.width / devicePixelRatio;
+	let   width = Math.sqrt(length * 225 + (thumb.height / devicePixelRatio + 20) * (thumb.width / devicePixelRatio + 20));
 	if (thumbWidth && width - thumbWidth < 100) { width = thumbWidth + 24; }
 	else if (thumbWidth && width - thumbWidth < 180) { width = thumbWidth + 200; }
 	else if (width < 150) { width = 150; }
