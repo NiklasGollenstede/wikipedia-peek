@@ -9,5 +9,4 @@
 		<div id="content"></div>
 		<div id="background"></div>
 	</body>
-<!-- omit </html> -->
-`));
+`)); // omit </html>

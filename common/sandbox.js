@@ -24,9 +24,15 @@ async function makeSandbox(init, {
 	host = document.head,
 } = { }) {
 
-	const script = `${ strict ? "'use strict'; " : '' }(async Port => window.addEventListener('message', function onMessage(event) { \
-const port = new Port(event.ports[0], Port.MessagePort); window.removeEventListener('message', onMessage); (${ init })(port); \
-}))((${ require.cache['node_modules/es6lib/port'].factory })());\n//# sourceURL=${ srcUrl }\n`;
+	const script = `${ strict ? "'use strict';" : '' } \0
+		document.currentScript.remove(); \0
+		(Port => window.onmessage = ({ ports: [ port1, ], }) => { \0
+			window.onmessage = null; \0
+			port1.postMessage([ 'loaded', 0, [ ], ]); \0
+			const port = new Port(port1, Port.MessagePort); \0
+			(${ init })(port); \0
+		})((${ require.cache['node_modules/es6lib/port'].factory })());
+	//# sourceURL=${ srcUrl }\n`.replace(/ \0[\r\n]\s*/g, ' ');
 
 	if (gecko && !inContent) { // Firefox doesn't allow inline scripts in the extension pages,
 		// so the code inside the script itself is allowed by 'sha256-QMSw9XSc08mdsgM/uQhEe2bXMSqOw4JvoBdpHZG21ps=', the eval() needs 'unsafe-eval'
@@ -42,17 +48,30 @@ const port = new Port(event.ports[0], Port.MessagePort); window.removeEventListe
 		frame.style.display = 'none';
 	}
 
-	(await new Promise((resolve, reject) => {
-		frame.onload = resolve; frame.onerror = reject;
+	return new Promise((resolve, reject) => {
+		frame.onload = () => resolve(onload()); frame.onerror = reject;
 		host.appendChild(frame);
-	}));
-	URL.revokeObjectURL(url);
+		URL.revokeObjectURL(url);
+		// if the page listens for 'DOMNodeInserted' (deprecated) and then does a synchronous XHR (deprecated) it can actually read the contents of the Blob.
+		// the only way this could be prevented would be to losten for 'DOMNodeInserted' earlyer and cancel the event
+		async function onload() {
+			frame.onload = frame.onerror = null;
 
-	const { port1, port2, } = new MessageChannel;
-	frame.contentWindow.postMessage(null, '*', [ port2, ]);
-	const port = new Port(port1, Port.MessagePort);
+			const { port1, port2, } = new MessageChannel;
+			frame.contentWindow.postMessage(null, '*', [ port1, ]);
+			// nobody but the frmae content itself can listen to this
+			const port = new Port(port2, Port.MessagePort);
 
-	return Object.assign(port, { frame, });
+			return new Promise((resolve, reject) => {
+				const cancel = setTimeout(() => reject(new Error('Failed to create Sandbox')), 50);
+				port.addHandler(function loaded() {
+					port.removeHandler('loaded');
+					clearTimeout(cancel);
+					resolve(Object.assign(port, { frame, }));
+				});
+			});
+		}
+	}).catch(error => { frame.remove(); throw error; });
 }
 
 return makeSandbox;

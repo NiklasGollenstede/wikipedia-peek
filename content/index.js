@@ -93,9 +93,14 @@ async function showForElement(link, wait) {
 /**
  * Primary event listeners. Called when an applicable link is hovered or touched.
  */
-function onMouseMove({ target: link, }) {
-	if (!link.matches || !link.matches('a, a *') || inTouchMode()) { return; }
-	showForElement(link.closest('a'), true);
+let lastHover; function onMouseMove({ target: link, }) {
+	if (inTouchMode()) { return; }
+	if (!link.closest) { link = link.parentNode; } // for text nodes
+	link = link.closest('a');
+	if (!link) { lastHover = null; return; }
+	if (lastHover === link) { return; }
+	lastHover = link;
+	showForElement(link, true);
 }
 function onTouchEnd(event) {
 	if (

@@ -5,7 +5,7 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 		'notifications',
 		'tabs',
 		'webNavigation',
-		'*://*/*'
+		'<all_urls>'
 	);
 
 	manifestJson.content_security_policy = `script-src 'self' 'unsafe-eval' 'sha256-QMSw9XSc08mdsgM/uQhEe2bXMSqOw4JvoBdpHZG21ps='; object-src 'self';`; // see common/sandbox.js

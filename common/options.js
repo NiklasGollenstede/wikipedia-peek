@@ -1,5 +1,6 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/web-ext-utils/browser/': { inContent, },
+	'node_modules/web-ext-utils/browser/version': { gecko, },
 	'node_modules/web-ext-utils/options/': Options,
 }) => {
 
@@ -12,6 +13,7 @@ const model = {
 			Examples:<ul>
 				<li><code>https://*.wikipedia.org/*</code>: Matches all Wikipedia pages</li>
 				<li><code>https://www.whatever.web/sites.html</code>: Matches exactly that site</li>
+				<li><code>&lt;all_urls&gt;</code>: Matches every URL</li>
 				<li><code>^https?://(?:www\.)?google\.(?:com|co\.uk|de|fr|com\.au)/.*$</code>: Starting with <code>^</code> and ending with <code>$</code>, this is a Regular Expression.</li>
 				<li><code>^.*$</code>: This is a Regular Expressions too. This one matches everything, so really only use it if you understand what you are doing!</li>
 			</ul>
@@ -19,11 +21,24 @@ const model = {
 		expanded: false,
 		maxLength: Infinity,
 		default: [ 'https://*.wikipedia.org/*', 'https://*.mediawiki.org/*', 'https://*.wikia.com/*', ],
-		restrict: { unique: '.', match: {
+		restrict: { match: {
 			exp: (/^(?:\^.*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/([^\ ]*)))$/i),
 			message: `Each pattern must be of the form <scheme>://<host>/<path> or be framed with '^' and '$'`,
 		}, },
 		input: { type: 'string', default: 'https://*.wikipedia.org/*', },
+		children: {
+			incognito: {
+				default: !gecko, hidden: !gecko, // this is only relevant in Firefox, Chrome has a separate check box for this
+				input: { type: 'bool', suffix: `include Private Browsing windows`, },
+			},
+			exclude: {
+				title: 'Excluded Sites',
+				description: `Use the same syntax as to exclude sites that are matched by Included Sites above`,
+				restrict: 'inherit',
+				maxLength: Infinity,
+				input: { type: 'string', default: 'https://specific.site.to/exclude/*', },
+			},
+		},
 	},
 	thumb: {
 		title: 'Thumbnail Images',
