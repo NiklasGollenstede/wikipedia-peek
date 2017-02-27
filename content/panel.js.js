@@ -13,20 +13,20 @@ port.addHandlers({
 		background.backgroundColor = style.backgroundColor;
 		background.borderColor = popup ? 'transparent' : style.color;
 		background.opacity = (1 - style.transparency / 100);
-		return { width: element.scrollWidth, height: element.scrollHeight, };
+		return { width: element.scrollWidth, height: element.scrollHeight, devicePixelRatio, };
 	},
 	loading() { // console.log('panel loading');
 		document.querySelector('#content').innerHTML = '';
 		document.body.classList.add('loading');
 		const spinner = document.querySelector('#spinner');
-		return { width: spinner.clientWidth, height: spinner.clientHeight, };
+		return { width: spinner.clientWidth, height: spinner.clientHeight, devicePixelRatio, };
 	},
 	show(content, maxWidth) { // console.log('panel show', maxWidth);
 		const element = document.querySelector('#content');
 		element.style.maxWidth = maxWidth +'px';
 		element.innerHTML = content;
 		document.body.classList.remove('loading');
-		return { width: element.scrollWidth, height: element.scrollHeight, };
+		return { width: element.scrollWidth, height: element.scrollHeight, devicePixelRatio, };
 	},
 	hide() { // console.log('panel hide');
 		document.querySelector('#content').innerHTML = '';

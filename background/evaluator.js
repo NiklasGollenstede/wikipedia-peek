@@ -13,13 +13,16 @@ class Evaluator {
 	}
 
 	newFunction(...args) {
-		const sandbox = Self.get(this);
+		const sandbox = Self.get(this), _this = this;
 		const id = Math.random().toString(32).slice(2);
-		sandbox.post('create', id, ...args);
 		const stub = async function() {
+			if (!Self.has(_this)) { throw new TypeError(`Dead remote function called`); }
 			return sandbox.request('call', id, ...arguments);
 		};
-		Object.defineProperty(stub, 'destroy', { value() { Self.get(this) && sandbox.post('destroy', id); }, });
+		Object.defineProperty(stub, 'ready', { value: sandbox.request('create', id, ...args).then(length => {
+			Object.defineProperty(stub, 'length', { value: length, }); return stub;
+		}), });
+		Object.defineProperty(stub, 'destroy', { value() { Self.has(this) && sandbox.post('destroy', id); }, });
 		return stub;
 	}
 
@@ -41,7 +44,7 @@ async function EvaluatorInit() {
 			},
 			create(id, ...args) {
 				const func = functions[id] = new FunctionCtor(...args);
-				return { id, length: func.length, };
+				return func.length;
 			},
 			call(id, ...args) {
 				const func = functions[id];
@@ -61,7 +64,7 @@ async function EvaluatorInit() {
 				Object.getOwnPropertySymbols(object).forEach(key => { try { freeze(object[key]); } catch (_) { } });
 				// try { freeze(Object.getPrototypeOf(object)); } catch (_) { }
 			};
-			[ 'Object', 'Array', 'Function', 'Math', 'Error', 'TypeError', 'String', 'Number', 'Boolean', 'Symbol', 'RegExp', ]
+			[ 'Object', 'Array', 'Function', 'Math', 'Error', 'TypeError', 'String', 'Number', 'Boolean', 'Symbol', 'RegExp', 'Promise', ]
 			.forEach(prop => {
 				Object.defineProperty(window, prop, { writable: false, configurable: false, });
 				freeze(window[prop]);

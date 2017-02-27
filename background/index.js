@@ -2,7 +2,7 @@
 	'node_modules/es6lib/port': Port,
 	'node_modules/web-ext-utils/browser/': { browserAction, Tabs, Messages, runtime, },
 	'node_modules/web-ext-utils/browser/version': { gecko, },
-	'node_modules/web-ext-utils/loader/': { ContentScript, runInTab, },
+	'node_modules/web-ext-utils/loader/': { ContentScript, },
 	'node_modules/web-ext-utils/update/': updated,
 	'node_modules/web-ext-utils/utils/': { reportError, },
 	'common/options': options,
@@ -59,14 +59,9 @@ runtime.onConnect.addListener(async _port => {
 
 
 // fixes
-if (gecko) { // the devicePixelRatio in Firefox's background page is always 1
-	global.screen = { }; // better have no values than wrong ones
-	for (const tab of (await Tabs.query({ active: true, }))) { try {
-		global.devicePixelRatio = (await runInTab(tab.id, () => devicePixelRatio));
-		break;
-	} catch (error) { reportError(error); } }
-}
-
+gecko && options.advanced.children.devicePixelRatio.whenChange(value => {
+	global.devicePixelRatio = value; // the devicePixelRatio in the background page is always 1
+});
 
 // debugging
 Object.assign(global, {

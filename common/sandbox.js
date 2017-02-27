@@ -27,9 +27,9 @@ async function makeSandbox(init, {
 	const script = `${ strict ? "'use strict';" : '' } \0
 		document.currentScript.remove(); \0
 		(Port => window.onmessage = ({ ports: [ port1, ], }) => { \0
-			window.onmessage = null; \0
 			port1.postMessage([ 'loaded', 0, [ ], ]); \0
 			const port = new Port(port1, Port.MessagePort); \0
+			window.onmessage = null; port1 = null; \0
 			(${ init })(port); \0
 		})((${ require.cache['node_modules/es6lib/port'].factory })());
 	//# sourceURL=${ srcUrl }\n`.replace(/ \0[\r\n]\s*/g, ' ');
@@ -53,17 +53,17 @@ async function makeSandbox(init, {
 		host.appendChild(frame);
 		URL.revokeObjectURL(url);
 		// if the page listens for 'DOMNodeInserted' (deprecated) and then does a synchronous XHR (deprecated) it can actually read the contents of the Blob.
-		// the only way this could be prevented would be to losten for 'DOMNodeInserted' earlyer and cancel the event
+		// the only way this could be prevented would be to listen for 'DOMNodeInserted' earlier and cancel the event
 		async function onload() {
 			frame.onload = frame.onerror = null;
 
 			const { port1, port2, } = new MessageChannel;
 			frame.contentWindow.postMessage(null, '*', [ port1, ]);
-			// nobody but the frmae content itself can listen to this
+			// nobody but the frame content itself can listen to this
 			const port = new Port(port2, Port.MessagePort);
 
 			return new Promise((resolve, reject) => {
-				const cancel = setTimeout(() => reject(new Error('Failed to create Sandbox')), 50);
+				const cancel = setTimeout(() => reject(new Error('Failed to create Sandbox')), gecko ? 150 : 75);
 				port.addHandler(function loaded() {
 					port.removeHandler('loaded');
 					clearTimeout(cancel);

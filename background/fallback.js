@@ -7,13 +7,8 @@
 
 global.getViews = { };
 
-const barHeight = gecko ? { // TODO: use options for these
-	maximized: 70,
-	normal: 90,
-} : {
-	maximized: 83,
-	normal: 88,
-};
+const offsetTop = options.advanced.children.fallback.children.offsetTop.children;
+const closeOnBlur = options.advanced.children.fallback.children.closeOnBlur;
 
 const fallbacks = new Set;
 
@@ -28,20 +23,13 @@ async function handleFallback(fallback) {
 
 const methods = {
 	async show(preview, anchor, style) { try {
-		const parent  = (await Windows.get((await Tabs.get(this.tabId)).windowId));
-		const top     = parent.top + (barHeight[parent.state] || 0) + anchor.top / devicePixelRatio << 0;
-
 		const view = this.view = (await new Promise(async got => (global.getViews[(await Windows.create({
 			type: 'popup', url: '/ui/view/index.html',
-			top, // firefox (52) ignores positions in .create()
 			width: 50, height: 50,
 		})).id] = got)));
 
-		view.addEventListener('blur', () => view.close());
-		view.addEventListener('unload', () => {
-			this.view = null;
-			this.post('hide');
-		});
+		closeOnBlur.value && view.addEventListener('blur', () => view.close());
+		view.addEventListener('unload', () => { this.view = null; this.post('hide'); });
 		view.document.title = `Fallback - Wikipedia Peek`;
 
 		const port = (await (await require.async('common/sandbox'))((await require.async('content/panel.js')), {
@@ -56,19 +44,22 @@ const methods = {
 		});
 
 		(await port.request('setStyle', style, true));
+		const parent  = (await Windows.get((await Tabs.get(this.tabId)).windowId));
 		const content = (await port.request('show', preview, parent.width - 20));
+		if (gecko && content.devicePixelRatio !== devicePixelRatio) { global.devicePixelRatio = options.advanced.children.devicePixelRatio.value = content.devicePixelRatio; }
 
-		const height  = Math.min((content.height + 40), parent.height - (barHeight[parent.state] || 0) - anchor.top / devicePixelRatio) << 0;
+		const addTop  = offsetTop[parent.state].value;
+		const height  = Math.min((content.height + 40), parent.height - addTop - anchor.top / devicePixelRatio) << 0;
 		const width   = content.width + 30 << 0;
-		const minLeft = Math.min(parent.left, 0) << 0;
-		const left    = parent.left + (anchor.left + anchor.width / 2) / devicePixelRatio - width / 2 + (gecko ? 10 : 3) << 0;
-		const maxLeft = parent.width - width << 0;
+		const top     = parent.top + addTop + anchor.top / devicePixelRatio << 0;
+		const left    = parent.left + Math.min(Math.max(0,
+			(anchor.left + anchor.width / 2) / devicePixelRatio - width / 2 + (gecko ? 10 : 3)
+		), parent.width - width) << 0;
 
 		(await Windows.update(view.windowId, {
-			top, left: Math.min(Math.max(minLeft, left), maxLeft),
-			width, height, state: 'normal',
+			top, left, width, height, state: 'normal',
 		}));
-	} catch (error) { reportError('Fallback mode failed', error); this.view && this.view.close(); } },
+	} catch (error) { reportError('Fallback mode failed', error); this.view && this.view.close(); throw error; } },
 
 	hide() {
 		this.view && this.view.close();

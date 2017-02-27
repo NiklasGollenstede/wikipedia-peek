@@ -25,7 +25,7 @@ const Self = {
 		Can be used on <code>&lt;all_urls&gt</code>, but do expect quite some useless previews.`,
 
 	priority: -999,
-	includes: [ ],
+	includes: [ '<all_urls>', ],
 	options: {
 		exclude: {
 			title: 'Exclude Targets',

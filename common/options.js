@@ -20,7 +20,7 @@ const model = {
 		`,
 		expanded: false,
 		maxLength: Infinity,
-		default: [ 'https://*.wikipedia.org/*', 'https://*.mediawiki.org/*', 'https://*.wikia.com/*', ],
+		default: [ 'https://*.wikipedia.org/*', 'https://*.mediawiki.org/*', 'https://*.wikia.com/*', '<all_urls>', ],
 		restrict: { match: {
 			exp: (/^(?:\^.*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/([^\ ]*)))$/i),
 			message: `Each pattern must be of the form <scheme>://<host>/<path> or be framed with '^' and '$'`,
@@ -122,10 +122,54 @@ const model = {
 				restrict: { type: 'number', from: 0, to: 2000, },
 				input: { type: 'integer', suffix: 'milliseconds', },
 			},
+			fallback: {
+				title: 'Popup Fallback Mode',
+				description: `The Content Security Policy of some websites prevents the insertion of the panels.
+				As a fallback, the previews on these sites can be opened in separate popup windows.`,
+				expanded: false,
+				default: true,
+				input: { type: 'checkbox', suffix: 'enable the fallback maode', },
+				children: {
+					offsetTop: {
+						description: `The positioning of the popups depends on the width of the window frames, so`,
+						restrict: { type: 'number', from: 0, to: 250, },
+						default: true,
+						children: {
+							maximized: {
+								default: gecko ? 74 : 83,
+								restrict: 'inherit',
+								input: { type: 'number', prefix: 'add', suffix: 'pixel at the top of maximized windows,', },
+							},
+							normal: {
+								default: gecko ? 68 : 88,
+								restrict: 'inherit',
+								input: { type: 'number', prefix: 'and', suffix: 'pixel at the top of other windows.', },
+							},
+						},
+					},
+					closeOnBlur: {
+						description: ` `,
+						default: true,
+						input: { type: 'checkbox', suffix: 'close on blur', },
+					},
+				},
+			},
 			resetCache: {
 				title: 'Reset Cache',
 				default: Math.random().toString(32).slice(2),
 				input: { type: 'random', label: 'Reset', },
+			},
+			devicePixelRatio: {
+				title: 'devicePixelRatio',
+				description: `Nowadays many devices have high resolution displays.
+				To load images in a quality fitting your display and to position the popup windows correctly,
+				this extension needs to know that scale factor.<br>
+				It should automatically adjust itself and unless you have zoomed this page, the value should be set to <code>${ devicePixelRatio }</code>.`,
+				expanded: false,
+				default: 1,
+				hidden: !gecko,
+				restrict: { type: 'number', from: 0.5, to: 8, },
+				input: { type: 'number', suffix: 'device pixel per CSS px', },
 			},
 		},
 	},

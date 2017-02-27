@@ -1,7 +1,7 @@
 (function() { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/string': { fuzzyMatch, },
 	'node_modules/web-ext-utils/utils/': { reportError, },
-	Evaluator,
+	require,
 }) => {
 
 /**
@@ -85,7 +85,8 @@ function setFunctionOnChange(loader, options, func, name = func.name) {
 	options[name].whenChange(async value => { try {
 		loader[name].destroy && loader[name].destroy();
 		loader[name] = options[name].values.isSet
-		? Evaluator.newFunction('url', value) : func;
+		? (await require.async('./evaluator')).newFunction('url', value) : func;
+		return loader[name].ready;
 	} catch (error) { reportError(`Could not compile "${ name }" for "${ loader.name }"`, error); throw error; } });
 }
 
