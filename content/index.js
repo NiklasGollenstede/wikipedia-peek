@@ -7,6 +7,7 @@
 const { runtime, } = (global.browser || global.chrome);
 const TOUCH_MODE_TIMEOUT = 300; // ms
 const {
+	debug = 0,
 	touchMode = 'auto',
 	showDelay = 500,
 } = module.config() || { }; // TODO: actually set these
@@ -27,9 +28,9 @@ const inTouchMode = typeof touchMode === 'boolean' ? () => touchMode
 /// prevents the click event that would follow a mousedown event
 const preventClick = (timeout => () => {
 	clearTimeout(timeout);
-	document.addEventListener('click', blockEvent);
+	window.addEventListener('click', blockEvent, true);
 	timeout = setTimeout(() => {
-		document.removeEventListener('click', blockEvent);
+		window.removeEventListener('click', blockEvent, true);
 	}, TOUCH_MODE_TIMEOUT);
 })(0);
 
@@ -45,9 +46,8 @@ const request = (method, ...args) => new Promise((resolve, reject) => runtime.se
  * @param  {boolean}  wait  Whether to wait showDelay before taking further steps.
  */
 async function showForElement(link, wait) {
-	if (loading === link || overlay && overlay.target === link && overlay.state !== 'hidden') { return; }
-	if (equalExceptHash(link.href, location.href)) { return; } // TODO: ignore data:, blob: javascript:, ...
-	loading = link; let canceled = false; const cancel = () => {
+	loading = link; let canceled = false; const cancel = _ => {
+		debug && console.log('cancel for', _, link);
 		loading = null; canceled = true;
 		overlay && overlay.cancel(link);
 		link.removeEventListener('mouseleave', cancel);
@@ -56,6 +56,8 @@ async function showForElement(link, wait) {
 	try {
 		link.addEventListener('mouseleave', cancel);
 		document.addEventListener('click', cancel);
+
+		debug && console.log('loading for', link);
 
 		// on hover, wait a bit
 		wait && (await sleep(showDelay));
@@ -90,6 +92,13 @@ async function showForElement(link, wait) {
 	}
 }
 
+function shouldIgnore(link) { return (
+	!link || loading === link
+	|| overlay && overlay.target === link && overlay.state !== 'hidden'
+	|| (/^(?:about|blob|data|javascript):/).test(link.href)
+	|| equalExceptHash(link.href, location.href)
+); }
+
 /**
  * Primary event listeners. Called when an applicable link is hovered or touched.
  */
@@ -100,6 +109,7 @@ let lastHover; function onMouseMove({ target: link, }) {
 	if (!link) { lastHover = null; return; }
 	if (lastHover === link) { return; }
 	lastHover = link;
+	if (shouldIgnore(link)) { return; }
 	showForElement(link, true);
 }
 function onTouchEnd(event) {
@@ -108,14 +118,14 @@ function onTouchEnd(event) {
 		|| event.changedTouches.length !== 1
 		|| event.changedTouches.item(0).target !== event.target
 	) { return; }
-	const link = event.target.closest('a'); if (!link) { return; }
+	const link = event.target.closest('a'); if (shouldIgnore(link)) { return; }
 	blockEvent(event);
 	preventClick();
 	showForElement(link, false);
 }
 function onMouseDown(event) {
 	if (event.button || !inTouchMode()) { return; }
-	const link = event.target.closest('a'); if (!link) { return; }
+	const link = event.target.closest('a'); if (shouldIgnore(link)) { return; }
 	preventClick();
 	showForElement(link, false);
 }

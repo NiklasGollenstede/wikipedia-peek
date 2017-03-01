@@ -1,16 +1,17 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/port': Port,
-	'node_modules/web-ext-utils/browser/': { browserAction, Tabs, Messages, runtime, },
-	'node_modules/web-ext-utils/browser/version': { gecko, },
+	'node_modules/web-ext-utils/browser/': { browserAction, pageAction, Tabs, Messages, runtime, },
+	'node_modules/web-ext-utils/browser/version': { gecko, fennec, },
 	'node_modules/web-ext-utils/loader/': { ContentScript, },
 	'node_modules/web-ext-utils/update/': updated,
-	'node_modules/web-ext-utils/utils/': { reportError, },
+	'node_modules/web-ext-utils/utils/': { reportError, showExtensionTab, },
 	'common/options': options,
+	Fallback, // loading this on demand is to slow in fennec
 	Loader,
 	require,
 }) => {
 
-updated.extension.to.channel !== '' && console.info('Ran updates', updated);
+options.debug.value && console.info('Ran updates', updated);
 
 
 // Loader
@@ -19,7 +20,7 @@ Messages.addHandler(function getPreview() { return Loader.getPreview(this, ...ar
 
 // ContentScript
 const content = new ContentScript({
-	runAt: 'document_end',
+	runAt: 'document_start',
 	modules: [ 'content/index', ],
 });
 options.include.whenChange((_, { current, }) => {
@@ -31,6 +32,14 @@ options.include.children.exclude.whenChange((_, { current, }) => {
 options.include.children.incognito.whenChange(value => {
 	content.incognito = value;
 });
+options.debug.whenChange(updateConfig);
+options.advanced.children.touchMode.whenChange(updateConfig);
+options.advanced.children.showDelay.whenChange(updateConfig);
+function updateConfig() { content.modules = { 'content/index': {
+	debug: options.debug.value,
+	touchMode: options.advanced.children.touchMode.value,
+	showDelay: options.advanced.children.showDelay.value,
+}, }; }
 
 browserAction && browserAction.onClicked.addListener(onClick);
 async function onClick() { try {
@@ -40,6 +49,10 @@ async function onClick() { try {
 
 } catch (error) { reportError(error); throw error; } }
 
+fennec && pageAction && content.onMatch.addListener(({ tabId, }) => pageAction.show(tabId));
+fennec && pageAction && pageAction.onClicked.addListener(openOptionsPage);
+
+content.onMatch.addListener(e => options.debug.value && console.log('match frame', e));
 (await content.applyNow());
 
 
@@ -50,7 +63,6 @@ runtime.onConnect.addListener(async _port => {
 	port.tabId = _port.sender.tab && _port.sender.tab.id;
 	switch (_port.name) {
 		case 'overlay-fallback': {
-			const Fallback = (await require.async('./fallback'));
 			Fallback.add(port);
 		} break;
 		default: throw new Error(`Bad connect "${ _port.name }"`);
@@ -62,13 +74,14 @@ runtime.onConnect.addListener(async _port => {
 gecko && options.advanced.children.devicePixelRatio.whenChange(value => {
 	global.devicePixelRatio = value; // the devicePixelRatio in the background page is always 1
 });
+function openOptionsPage() { showExtensionTab(new URL(runtime.getManifest().options_ui.page, new URL('/', location)).pathname); }
 
 // debugging
 Object.assign(global, {
-	options, content, onClick,
-	Browser: arguments[0]['node_modules/web-ext-utils/browser/'],
-	Loader:  arguments[0]['node_modules/web-ext-utils/loader/'],
-	Utils:   arguments[0]['node_modules/web-ext-utils/utils/'],
+	options, content, onClick, openOptionsPage,
+	Browser: require('node_modules/web-ext-utils/browser/'),
+	Loader:  require('node_modules/web-ext-utils/loader/'),
+	Utils:   require('node_modules/web-ext-utils/utils/'),
 });
 
 }); })(this);

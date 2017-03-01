@@ -61,12 +61,13 @@ const Self = {
 	async load(url) {
 		const api = (await Self.getApiPath(url));
 		const name = (await Self.getArticleName(url));
+		const lang = (/:\/\/([^.]*)/).exec(url)[1];
 		if (!api || !name) { return null; }
 		const [ , title, section, ] = (/^(.*?)(?:#.*)?$/).exec(name);
-		return Self.doLoad(api, title, section);
+		return Self.doLoad(api, title, section, lang);
 	},
 
-	async doLoad(api, title, section) {
+	async doLoad(api, title, section, lang) {
 
 		const thumbPx = allOptions.thumb.children.size.value * devicePixelRatio;
 		const src = (
@@ -90,7 +91,7 @@ const Self = {
 		const thumb = allOptions.thumb.value && page.thumbnail || { width: 0, height: 0, };
 		const html = extractSection(page.extract || '', section).replace(/<p>\s*<\/p>/, '');
 
-		return article({ html, thumb, });
+		return article({ html, thumb, lang, });
 	},
 };
 

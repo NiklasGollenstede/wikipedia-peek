@@ -20,9 +20,7 @@ body {
 	border: 1px solid;
 	border-color: transparent; /* see through to #background */
 	color: black;
-	hyphens: auto;
-	-ms-hyphens: auto;
-	-webkit-hyphens: auto;
+	min-width: 100vw;
 }
 #background { /* background with custom transparency */
 	position: absolute;

@@ -2,14 +2,18 @@
 	'node_modules/web-ext-utils/browser/': { inContent, },
 	'node_modules/web-ext-utils/browser/version': { gecko, },
 	'node_modules/web-ext-utils/options/': Options,
+	require,
 }) => {
+
+const isBeta = (/^\d+\.\d+.\d+(?!$)/).test((global.browser || global.chrome).runtime.getManifest().version); // version doesn't end after the 3rd number ==> bata channel
 
 const model = {
 	include: {
 		title: 'Included Sites',
 		description: String.raw`
 			A list of sites on which this extension should work by default, without clicking it's icon.<br>
-			Specify as <a href="https://developer.mozilla.org/Add-ons/WebExtensions/Match_patterns">Match Patterns</a> or Regular Expressions (advanced).<br>
+			Specify as <a href="https://developer.mozilla.org/Add-ons/WebExtensions/Match_patterns">Match Patterns</a>
+			or <a href="https://regex101.com/">Regular Expressions</a> (advanced, must start with <code>^</code> and end with <code>$</code>).<br>
 			Examples:<ul>
 				<li><code>https://*.wikipedia.org/*</code>: Matches all Wikipedia pages</li>
 				<li><code>https://www.whatever.web/sites.html</code>: Matches exactly that site</li>
@@ -172,6 +176,14 @@ const model = {
 				input: { type: 'number', suffix: 'device pixel per CSS px', },
 			},
 		},
+	},
+	debug: {
+		title: 'Debug Level',
+		expanded: false,
+		default: +isBeta,
+		hidden: !isBeta,
+		restrict: { type: 'number', from: 0, to: 2, },
+		input: { type: 'integer', suffix: 'set to > 0 to enable debugging', },
 	},
 };
 

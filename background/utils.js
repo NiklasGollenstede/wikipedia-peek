@@ -53,7 +53,7 @@ function fuzzyFind(array, string) {
 }
 
 
-function article({ html, thumb = { width: 0, height: 0, }, }) {
+function article({ html, thumb = { width: 0, height: 0, }, lang = '', }) {
 	const [ text, length, ] = sanatize(html);
 	if (!thumb.source && length < 20) { return null; }
 	const minHeight = thumb.height / devicePixelRatio + 20;
@@ -70,13 +70,19 @@ function article({ html, thumb = { width: 0, height: 0, }, }) {
 			.thumb {
 				float: right;
 				margin: 3px 3px 3px 10px;
-			}
+			}`
+			+(width - thumb.width < 300 ? `
+			article${ width > 300 ? '>:first-child' : '' } {
+				hyphens: auto;
+				-ms-hyphens: auto;
+				-webkit-hyphens: auto;
+			}` : '')+`
 		</style>`
 		+ (thumb.source ? `<img
 			src="${ thumb.source }" class="thumb" alt="loading..."
 			style="width: ${ thumbWidth }px; height: ${ thumb.height / devicePixelRatio }px;"
 		>` : '')
-		+ `<article>${ text }</article>`
+		+ `<article lang="${ lang.replace(/[^\w-]/g, '') || navigator.language }">${ text }</article>`
 	);
 }
 

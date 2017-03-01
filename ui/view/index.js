@@ -1,11 +1,11 @@
 (function(global) { 'use strict';
 
 const chrome = (global.browser || global.chrome);
-chrome.windows.getCurrent(window => {
-	global.windowId = window.id;
+chrome.tabs.getCurrent(tab => {
+	global.tabId = tab.id;
 	const main = chrome.extension.getBackgroundPage();
-	main.getViews[window.id](global);
-	delete main.getViews[window.id];
+	main.getViews[tab.id](global);
+	delete main.getViews[tab.id];
 });
 
 })(this);

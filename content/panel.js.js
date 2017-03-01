@@ -23,7 +23,7 @@ port.addHandlers({
 	},
 	show(content, maxWidth) { // console.log('panel show', maxWidth);
 		const element = document.querySelector('#content');
-		element.style.maxWidth = maxWidth +'px';
+		element.style.maxWidth = Math.min(maxWidth, screen.width) +'px';
 		element.innerHTML = content;
 		document.body.classList.remove('loading');
 		return { width: element.scrollWidth, height: element.scrollHeight, devicePixelRatio, };
@@ -31,6 +31,9 @@ port.addHandlers({
 	hide() { // console.log('panel hide');
 		document.querySelector('#content').innerHTML = '';
 		document.body.classList.remove('loading');
+	},
+	'await click'() {
+		return new Promise(onclick => document.addEventListener('click', () => onclick(), { once: true, }));
 	},
 });
 
