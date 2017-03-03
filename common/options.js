@@ -1,6 +1,6 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/web-ext-utils/browser/': { inContent, },
-	'node_modules/web-ext-utils/browser/version': { gecko, },
+	'node_modules/web-ext-utils/browser/version': { gecko, fennec, },
 	'node_modules/web-ext-utils/options/': Options,
 	require,
 }) => {
@@ -131,9 +131,16 @@ const model = {
 				description: `The Content Security Policy of some websites prevents the insertion of the panels.
 				As a fallback, the previews on these sites can be opened in separate popup windows.`,
 				expanded: false,
-				default: true,
+				default: !fennec,
 				input: { type: 'checkbox', suffix: 'enable the fallback maode', },
 				children: {
+					always: {
+						description: ` `,
+						default: false,
+						input: { type: 'checkbox', suffix: `<b>Always</b> use the fallback mode and never display inline panels.
+						<br>With the inline panels the pages are theoretically able to tell when and where such a panel is displayed, but can't read its content.
+						If you see this as a privacy issue, check this box and all previews will open in undetectable popups.`, },
+					},
 					offsetTop: {
 						description: `The positioning of the popups depends on the width of the window frames, so`,
 						restrict: { type: 'number', from: 0, to: 250, },

@@ -13,34 +13,32 @@ global.getViews = { };
 
 const offsetTop = options.advanced.children.fallback.children.offsetTop.children;
 const closeOnBlur = options.advanced.children.fallback.children.closeOnBlur;
+const style = options.style.children;
+function getStyle() { return {
+	color: style.color.value,
+	fontFamily: style.fontFamily.value,
+	fontSize: style.fontSize.value,
+	backgroundColor: style.backgroundColor.value,
+	transparency: style.transparency.value,
+}; }
 
-const fallbacks = new Set;
-
-async function handleFallback(fallback) {
-	fallbacks.add(fallback);
-	fallback.ended.then(() => {
-		methods.hide.call(fallback);
-		fallbacks.delete(fallback);
-	});
-	fallback.addHandlers(methods, fallback);
-}
+let view = null;
 
 const methods = {
-	async show(preview, anchor, style) { try {
-		// TODO: the tab based fallback made has one serious conceptional flaw: it is virtually impossible to actually click the original link. And it is too slow (on a phone)
+	async show(preview, anchor) { try {
+		// TODO: the tab based fallback mode has one serious conceptional flaw: it is virtually impossible to actually click the original link. And it is too slow (on a phone)
 		const tab = Windows ? (await Windows.create({
 			type: 'popup', url: '/ui/view/index.html',
 			width: 50, height: 50,
 		})).tabs[0] : (await Tabs.create({
 			url: '/ui/view/index.html',
-			active: true,
-			[!gecko ? 'openerTabId' : 'index']: this.tabId,
-			index: (await Tabs.get(this.tabId)).index,
+			[!gecko ? 'openerTabId' : 'index']: this.tab.id,
+			index: (await Tabs.get(this.tab.id)).index,
 		}));
-		const view = this.view = (await new Promise(async got => (global.getViews[tab.id] = got)));
+		view = (await new Promise(async got => (global.getViews[tab.id] = got)));
 
-		closeOnBlur.value && view.addEventListener('blur', () => view.close());
-		view.addEventListener('unload', () => { this.view = null; this.post('hide'); port.destroy(); });
+		closeOnBlur.value && view.addEventListener('blur', methods.hide);
+		view.addEventListener('unload', () => { view = null; port.destroy(); });
 		view.document.title = `Fallback - Wikipedia Peek`;
 
 		const port = (await makeSandbox(js, {
@@ -53,10 +51,10 @@ const methods = {
 			border: 'none', top: 0, left: 0,
 			width: 'calc(100vw + 2px)', height: 'calc(100vh + 2px)',
 		});
-		!Windows && closeOnBlur.value && port.request('await click').then(() => Tabs.remove(view.tabId), () => void 0).then(() => console.log('onclick resolved'));
+		!Windows && closeOnBlur.value && port.request('await click').then(methods.hide);
 
-		(await port.request('setStyle', style, true));
-		const parent  = Windows && (await Windows.get((await Tabs.get(this.tabId)).windowId));
+		(await port.request('setStyle', getStyle(), true));
+		const parent  = Windows && (await Windows.get((await Tabs.get(this.tab.id)).windowId));
 		const content = (await port.request('show', preview, parent ? parent.width - 20 : 999999));
 		if (gecko && content.devicePixelRatio !== devicePixelRatio) { global.devicePixelRatio = options.advanced.children.devicePixelRatio.value = content.devicePixelRatio; }
 
@@ -73,15 +71,16 @@ const methods = {
 		(await Windows.update(tab.windowId, {
 			top, left, width, height, state: 'normal',
 		}));
-	} catch (error) { reportError('Fallback mode failed', error); this.view && this.view.close(); throw error; } },
+
+		(await port.ended);
+	} catch (error) { reportError('Fallback mode failed', error); methods.hide(); throw error; } },
 
 	hide() {
-		this.view && this.view.close();
+		view && Tabs.remove(view.tabId);
+		view = null;
 	},
 };
 
-return {
-	add: handleFallback,
-};
+return methods;
 
 }); })(this);

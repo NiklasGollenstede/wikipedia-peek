@@ -79,7 +79,9 @@ const Self = {
 		);
 
 		const { response, } = (await HttpRequest({ src, responseType: 'json', }));
-		const redirect = response.query && response.query.redirects && response.query.redirects[0] || { };
+		if (!response || !response.query) { return null; }
+
+		const redirect = response.query.redirects && response.query.redirects[0] || { };
 		if (redirect.tofragment) { if (section) {
 			section = redirect.tofragment;
 		} else {

@@ -4,24 +4,26 @@
 	module,
 }) => {
 
-const { runtime, } = (global.browser || global.chrome);
+const chrome = (global.browser || global.chrome);
 const TOUCH_MODE_TIMEOUT = 300; // ms
 const {
 	debug = 0,
 	touchMode = 'auto',
 	showDelay = 500,
+	fallback = true,
 } = module.config() || { }; // TODO: actually set these
 let loading = null; // the link that is currently being loaded for
 let overlay = null; /* require.async('./overlay') */
 
+debug && console.debug('content options', module.config());
 
 /// returns whether or not the screen has recently been touched and touch friendly behavior should apply
 const inTouchMode = typeof touchMode === 'boolean' ? () => touchMode
 : (() => {
 	let lastTouch = 0; const touchEvents = [ 'touchstart', 'touchmove', 'touchend', ];
-	touchEvents.forEach(type => document.body.addEventListener(type, onTouch));
-	onUnload.addListener(() => touchEvents.forEach(type => document.body.removeEventListener(type, onTouch)));
-	function onTouch() { lastTouch = Date.now(); }
+	touchEvents.forEach(type => window.addEventListener(type, onTouch, true));
+	onUnload.addListener(() => touchEvents.forEach(type => window.removeEventListener(type, onTouch, true)));
+	function onTouch() { lastTouch = Date.now(); } // TODO: use event.timestamp
 	return () => lastTouch && Date.now() - lastTouch < TOUCH_MODE_TIMEOUT;
 })();
 
@@ -34,12 +36,6 @@ const preventClick = (timeout => () => {
 	}, TOUCH_MODE_TIMEOUT);
 })(0);
 
-const request = (method, ...args) => new Promise((resolve, reject) => runtime.sendMessage([ method, 1, args, ], reply => { try {
-	if (runtime.lastError) { return void reject(runtime.lastError); }
-	const [ , id, [ value, ], ] = reply;
-	(id < 0 ? reject : resolve)(value);
-} catch (error) { reject(error); } }));
-
 /**
  * Goes through all steps of loading a preview and checks if the link is still the target after each step.
  * @param  {Element}  link  The element that the user is currently targeting by hovering it or having tapped it.
@@ -47,7 +43,7 @@ const request = (method, ...args) => new Promise((resolve, reject) => runtime.se
  */
 async function showForElement(link, wait) {
 	loading = link; let canceled = false; const cancel = _ => {
-		debug && console.log('cancel for', _, link);
+		debug && console.debug('cancel for', _, link);
 		loading = null; canceled = true;
 		overlay && overlay.cancel(link);
 		link.removeEventListener('mouseleave', cancel);
@@ -57,7 +53,7 @@ async function showForElement(link, wait) {
 		link.addEventListener('mouseleave', cancel);
 		document.addEventListener('click', cancel);
 
-		debug && console.log('loading for', link);
+		debug && console.debug('loading for', link);
 
 		// on hover, wait a bit
 		wait && (await sleep(showDelay));
@@ -68,8 +64,12 @@ async function showForElement(link, wait) {
 		let gotPreview = false; getPreview.then(() => (gotPreview = true));
 
 		// show loading animation
-		if (!overlay) { global.overlay = overlay = (await require.async('./overlay')); }
+		if (!overlay) { global.overlay = overlay = (await (
+			fallback.always ? require.async('./fallback')
+			: require.async('./overlay').then(_=>_ || fallback && require.async('./fallback'))
+		)); }
 		else { (await sleep(100)); } // give the cache a bit of time to respond before showing the spinner
+		if (!overlay) { doUnload(); throw new Error(`Unable to open preview (fallback is disabled)`); }
 		if (canceled) { return; }
 		if (!gotPreview) {
 			(await overlay.loading(link));
@@ -86,6 +86,7 @@ async function showForElement(link, wait) {
 	} catch (error) {
 		console.error(error);
 		overlay && overlay.cancel(link);
+		request('reportError', `Failed to show preview`, (error && error.message));
 	} finally {
 		link.removeEventListener('mouseleave', cancel);
 		document.removeEventListener('click', cancel);
@@ -95,7 +96,7 @@ async function showForElement(link, wait) {
 function shouldIgnore(link) { return (
 	!link || loading === link
 	|| overlay && overlay.target === link && overlay.state !== 'hidden'
-	|| (/^(?:about|blob|data|javascript):/).test(link.href)
+	|| (/^(?:about|blob|data|javascript|mailto):/).test(link.href)
 	|| equalExceptHash(link.href, location.href)
 ); }
 
@@ -131,15 +132,16 @@ function onMouseDown(event) {
 }
 
 {
-	document.addEventListener('mousemove', onMouseMove);
-	document.addEventListener('touchend', onTouchEnd);
-	document.addEventListener('mousedown', onMouseDown);
+	document.addEventListener('mousemove', onMouseMove, true);
+	document.addEventListener('touchend', onTouchEnd, true);
+	document.addEventListener('mousedown', onMouseDown, true);
 }
-onUnload.addListener(() => {
-	document.removeEventListener('mousemove', onMouseMove);
-	document.removeEventListener('touchend', onTouchEnd);
-	document.removeEventListener('mousedown', onMouseDown);
-});
+onUnload.addListener(doUnload);
+function doUnload() {
+	document.removeEventListener('mousemove', onMouseMove, true);
+	document.removeEventListener('touchend', onTouchEnd, true);
+	document.removeEventListener('mousedown', onMouseDown, true);
+}
 
 return;
 
@@ -158,5 +160,11 @@ function blockEvent(event) {
 	event.preventDefault();
 	event.stopPropagation && event.stopPropagation();
 }
+
+function request(method, ...args) { return new Promise((resolve, reject) => chrome.runtime.sendMessage([ method, 1, args, ], reply => { try {
+	if (chrome.runtime.lastError) { return void reject(chrome.runtime.lastError); }
+	const [ , id, [ value, ], ] = reply;
+	(id < 0 ? reject : resolve)(value);
+} catch (error) { reject(error); } })); }
 
 }); })(this);

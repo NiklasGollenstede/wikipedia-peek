@@ -63,7 +63,7 @@ async function makeSandbox(init, {
 			const port = new Port(port2, Port.MessagePort);
 
 			return new Promise((resolve, reject) => {
-				const cancel = setTimeout(() => reject(new Error('Failed to create Sandbox')), gecko ? 150 : 75);
+				const cancel = setTimeout(() => reject(new Error('Failed to create Sandbox')), inContent ? (gecko ? 250 : 125) : 1000);
 				port.addHandler(function loaded() {
 					port.removeHandler('loaded');
 					clearTimeout(cancel);

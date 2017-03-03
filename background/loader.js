@@ -29,6 +29,9 @@ options.advanced.children.resetCache.onChange((_, values) => {
 
 return {
 	async getPreview(sender, url) { try {
+
+		// (await new Promise(done => setTimeout(done, 99999999999)));
+
 		const cached = memCache.get(url); if (cached !== undefined) { return cached; }
 
 		for (const loader of loaders) {

@@ -14,13 +14,14 @@
 options.debug.value && console.info('Ran updates', updated);
 
 
-// Loader
+// Messages
 Messages.addHandler(function getPreview() { return Loader.getPreview(this, ...arguments); }); // eslint-disable-line no-invalid-this
+Messages.addHandler('reportError', reportError);
+Messages.addHandlers('Fallback.', Fallback);
 
 
 // ContentScript
 const content = new ContentScript({
-	runAt: 'document_start',
 	modules: [ 'content/index', ],
 });
 options.include.whenChange((_, { current, }) => {
@@ -32,11 +33,17 @@ options.include.children.exclude.whenChange((_, { current, }) => {
 options.include.children.incognito.whenChange(value => {
 	content.incognito = value;
 });
+options.debug.whenChange(value => (require('node_modules/web-ext-utils/loader/').debug = value));
 options.debug.whenChange(updateConfig);
+options.advanced.children.fallback.whenChange(updateConfig);
+options.advanced.children.fallback.children.always.whenChange(updateConfig);
 options.advanced.children.touchMode.whenChange(updateConfig);
 options.advanced.children.showDelay.whenChange(updateConfig);
 function updateConfig() { content.modules = { 'content/index': {
 	debug: options.debug.value,
+	fallback: options.advanced.children.fallback.value && {
+		always: options.advanced.children.fallback.children.always.value,
+	},
 	touchMode: options.advanced.children.touchMode.value,
 	showDelay: options.advanced.children.showDelay.value,
 }, }; }
@@ -52,7 +59,17 @@ async function onClick() { try {
 fennec && pageAction && content.onMatch.addListener(({ tabId, }) => pageAction.show(tabId));
 fennec && pageAction && pageAction.onClicked.addListener(openOptionsPage);
 
-content.onMatch.addListener(e => options.debug.value && console.log('match frame', e));
+content.onMatch.addListener(({
+	tabId, frameId, incognito,
+	onPageHide, onPageShow, onRemove,
+}) => {
+	if (!options.debug.value) { return; }
+	console.debug('match frame', tabId, frameId, incognito);
+	onPageHide.addListener(() => console.debug('hide frame', tabId, frameId));
+	onPageShow.addListener(() => console.debug('show frame (again)', tabId, frameId));
+	onRemove.addListener(() => console.debug('frame removed', tabId, frameId));
+});
+
 (await content.applyNow());
 
 
@@ -75,6 +92,7 @@ gecko && options.advanced.children.devicePixelRatio.whenChange(value => {
 	global.devicePixelRatio = value; // the devicePixelRatio in the background page is always 1
 });
 function openOptionsPage() { showExtensionTab(new URL(runtime.getManifest().options_ui.page, new URL('/', location)).pathname); }
+
 
 // debugging
 Object.assign(global, {

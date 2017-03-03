@@ -38,8 +38,8 @@ const Self = {
 
 		const { response, } = (await HttpRequest({ src, responseType: 'json', }));
 		const page = response.items[Object.keys(response.items)[0]]; if (!page) { return null; }
-		if (/^REDIRECT /.test(page.abstract)) {
-			const [ , title, section, ] = (/^(.*?)(?:#.*)?$/).exec(page.abstract.slice('REDIRECT '.length));
+		if (/^REDIRECT ?/.test(page.abstract)) {
+			const [ , title, section, ] = (/^(.*?)(?:#.*)?$/).exec(page.abstract.replace(/^REDIRECT ?/, ''));
 			return Self.doLoad(api, title, section);
 		}
 
