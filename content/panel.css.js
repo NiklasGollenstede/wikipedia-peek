@@ -43,12 +43,8 @@ body {
 	display: none;
 }
 .loading .load-spinner, .load-spinner.loading {
-	display: block;
-	position: absolute;
 	font-size: /* SPINNER_SIZE */ 40px; /* that comment must stay there */
-	left: calc(50% - .5em);
-	top: calc(50% - .5em);
-	width: 1em; height: 1em;
+	display: block; width: 1.2em; height: 1.2em; /* give the parent the proper size */
 	margin: 0; padding: 0;
 }
 .loading .load-spinner::before, .load-spinner.loading::before {
@@ -59,6 +55,7 @@ body {
 	width: 1em; height: 1em;
 	margin: 0; padding: 0;
 	border-radius: 50%;
+	box-sizing: border-box;
 	border: .1em solid rgba(190, 190, 190, 0.8);
 	border-left-color: rgba(100, 100, 100, 0.8);
 	animation: spin .8s infinite cubic-bezier(.3,.6,.8,.5);

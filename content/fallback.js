@@ -1,7 +1,7 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	'./': { request, sleep, },
 }) => {
 
-const chrome = (global.browser || global.chrome);
 const HOVER_HIDE_DELAY = 230; // ms
 let target = null, state = 'hidden';
 
@@ -47,13 +47,5 @@ const Overlay = {
 };
 
 return Overlay;
-
-function sleep(ms) { return new Promise(done => setTimeout(done, ms)); }
-
-function request(method, ...args) { return new Promise((resolve, reject) => chrome.runtime.sendMessage([ method, 1, args, ], reply => { try {
-	if (chrome.runtime.lastError) { return void reject(chrome.runtime.lastError); }
-	const [ , id, [ value, ], ] = reply;
-	(id < 0 ? reject : resolve)(value);
-} catch (error) { reject(error); } })); }
 
 }); })(this);

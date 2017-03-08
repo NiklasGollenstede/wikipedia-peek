@@ -13,20 +13,20 @@ port.addHandlers({
 		background.backgroundColor = style.backgroundColor;
 		background.borderColor = popup ? 'transparent' : style.color;
 		background.opacity = (1 - style.transparency / 100);
-		return { width: element.scrollWidth, height: element.scrollHeight, devicePixelRatio, };
+		return size();
 	},
 	loading() { // console.log('panel loading');
 		document.querySelector('#content').innerHTML = '';
 		document.body.classList.add('loading');
-		const spinner = document.querySelector('#spinner');
-		return { width: spinner.clientWidth, height: spinner.clientHeight, devicePixelRatio, };
+		return size();
 	},
 	show(content, maxWidth) { // console.log('panel show', maxWidth);
-		const element = document.querySelector('#content');
+		const scripts = [ ], element = document.querySelector('#content');
 		element.style.maxWidth = Math.min(maxWidth, screen.width) +'px';
-		element.innerHTML = content;
+		element.innerHTML = content.replace(/<script>([^]*?)<\/script>/g, (_, script) => (scripts.push(script), ''));
 		document.body.classList.remove('loading');
-		return { width: element.scrollWidth, height: element.scrollHeight, devicePixelRatio, };
+		scripts.forEach(eval);
+		return size();
 	},
 	hide() { // console.log('panel hide');
 		document.querySelector('#content').innerHTML = '';
@@ -37,6 +37,11 @@ port.addHandlers({
 	},
 });
 
-window.port = port;
+function size() {
+	const element = document.body, size = document.body.getBoundingClientRect();
+	return { width: element.scrollWidth || size.width, height: size.height || element.scrollHeight, devicePixelRatio, };
+}
+
+window.resize = () => port.post('setSize', size());
 
 });

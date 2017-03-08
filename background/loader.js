@@ -28,28 +28,26 @@ options.advanced.children.resetCache.onChange((_, values) => {
 });
 
 return {
-	async getPreview(sender, url) { try {
+	async getPreview(sender, url) {
 
 		// (await new Promise(done => setTimeout(done, 99999999999)));
 
 		const cached = memCache.get(url); if (cached !== undefined) { return cached; }
 
-		for (const loader of loaders) {
+		for (const loader of loaders) { try {
 			if (!loader.includes.some(_=>_.test(url))) { continue; }
 			const content = (await loader.load(url));
 			if (!content) { continue; }
 			memCache.set(url, content);
 			return content;
-		}
+		} catch(error) {
+			reportError(`Failed lo load preview`, error);
+			console.error(`Error loading for`, url, error);
+		} }
 
 		memCache.set(url, null);
 		return null;
-
-	} catch(error) {
-		reportError(`Failed lo load preview`, error);
-		console.error(`Error loading for`, url, error);
-		throw error;
-	} },
+	},
 };
 
 }); })(this);

@@ -55,7 +55,7 @@ const Self = {
 
 		// TODO: if url.hash, remove everything in the DOM before `#${ url.hash }`?
 
-		const parsed = new Readability(makeURI(url), document).parse();
+		let parsed; try { parsed = new Readability(makeURI(url), document).parse(); } catch (error) { console.error(`Readability.js threw:`, error); }
 		if (!parsed || !parsed.excerpt) { return null; }
 
 		const title = parsed.title.replace(lastSegment, ''); // .split(/ (?:-|–|—|\||::) /)[0]; // TODO: only remove the last compartment? (done)

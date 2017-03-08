@@ -5,6 +5,7 @@
 	'./panel.html': html,
 	'./panel.css': css,
 	'./panel.js': js,
+	'./': { request, sleep, },
 	require,
 }) => {
 
@@ -20,13 +21,16 @@ if (!port) { return false; } // can't return null
 const frame = port.frame;
 
 function setSize({ width, height, }) {
-	frame.style.width  = (+width)  +'px';
-	frame.style.height = (+height) +'px';
+	frame.style.width  = width  +'px';
+	frame.style.height = height +'px';
 	const position = frame.getBoundingClientRect();
-	if (position.left < 10) {
-		frame.style.left = (width / 2 + 10) +'px';
-	} else if (position.right > document.scrollingElement.clientWidth - 10) {
-		frame.style.left = (document.scrollingElement.clientWidth - width / 2 - 10) +'px';
+	const host = document.scrollingElement.getBoundingClientRect();
+	if (position.width > host.width) {
+		frame.style.left = host.width/2 +'px';
+	} else if (position.left < host.left + 10) {
+		frame.style.left = 10 + position.width/2 +'px';
+	} else if (position.right > host.right - 10) {
+		frame.style.left = host.width - 10 - position.width/2 +'px';
 	}
 }
 
@@ -69,14 +73,14 @@ const Overlay = {
 	async loading(element) {
 		if (target === element && state !== 'hidden') { return; }
 		target = element; state = 'loading';
-		const position = element.getBoundingClientRect();
-		frame.style.top  = (window.scrollY + position.top  + position.height / 2 - SPINNER_SIZE / 2) +'px';
-		frame.style.left = (window.scrollX + position.left + position.width  / 2) +'px';
 		frame.style.pointerEvents = 'none';
 		frame.style.display = '';
-
 		frame.style.width = frame.style.height = '0';
 		const size = (await port.request('loading'));
+		const position = element.getBoundingClientRect();
+		const host = document.scrollingElement.getBoundingClientRect();
+		frame.style.left  = (-host.left + position.left + position.width/2) +'px';
+		frame.style.top   = (-host.top  + position.top  + position.height/2 - size.width/2) +'px';
 		setSize(size);
 	},
 	async show(element, preview) {
@@ -84,8 +88,9 @@ const Overlay = {
 		target = element; state = 'showing';
 		element.title && (element.titleAttr = element.title) && (element.title = '');
 		const position = element.getBoundingClientRect();
-		frame.style.top  = (position.bottom + window.scrollY + 5) +'px';
-		frame.style.left = (position.left   + window.scrollX + position.width / 2) +'px';
+		const host = document.scrollingElement.getBoundingClientRect();
+		frame.style.top  = (-host.top  + position.bottom + 5) +'px';
+		frame.style.left = (-host.left + position.left   + position.width/2) +'px';
 		frame.style.pointerEvents = '';
 		frame.style.display = '';
 
@@ -116,12 +121,11 @@ const Overlay = {
 }
 
 port.addHandler(setSize);
+port.addHandler((/^background\./), (name, ...args) => request(name.replace('background', 'panel'), ...args));
 async function setStyle() { setSize((await port.request('setStyle', getStyle()))); }
 style.parent.onAnyChange(setStyle); setStyle();
 onUnload.addListener(() => Overlay.hide() === frame.remove());
 
 return Overlay;
-
-function sleep(ms) { return new Promise(done => setTimeout(done, ms)); }
 
 }); })(this);

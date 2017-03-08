@@ -53,12 +53,11 @@ async function showForElement(link, wait) {
 		link.addEventListener('mouseleave', cancel);
 		document.addEventListener('click', cancel);
 
-		debug && console.debug('loading for', link);
-
 		// on hover, wait a bit
 		wait && (await sleep(showDelay));
 		if (canceled) { return; }
 
+		debug && console.debug('loading for', link);
 		// start loading
 		const getPreview = request('getPreview', link.href);
 		let gotPreview = false; getPreview.then(() => (gotPreview = true));
@@ -143,7 +142,10 @@ function doUnload() {
 	document.removeEventListener('mousedown', onMouseDown, true);
 }
 
-return;
+return {
+	request,
+	sleep,
+};
 
 function equalExceptHash(a, b) {
 	const ia = a.indexOf('#');

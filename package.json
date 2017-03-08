@@ -1,6 +1,6 @@
 {
 	"name": "wikipedia-peek",
-	"version": "2.8.4",
+	"version": "2.8.5",
 	"title": "Wikipedia Peek",
 	"description": "Browser extension that shows previews of linked articles on Wikipedia pages",
 	"author": "Niklas Gollenstede",
@@ -19,10 +19,10 @@
 
 	"dependencies": {
 		"readability": "mozilla/readability#1369f92",
-		"regexpx": "NiklasGollenstede/regexpx#eebed29",
 		"es6lib": "NiklasGollenstede/es6lib#8a2f99c",
-		"web-ext-build": "0.0.3",
-		"web-ext-utils": "NiklasGollenstede/web-ext-utils#d41add3"
+		"regexpx": "NiklasGollenstede/regexpx#eebed29",
+		"web-ext-utils": "NiklasGollenstede/web-ext-utils#6135748",
+		"web-ext-build": "NiklasGollenstede/web-ext-build#cafdc99"
 	},
 	"devDependencies": {
 		"babel-eslint": "7.1.1",

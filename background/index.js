@@ -1,8 +1,8 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	'node_modules/es6lib/port': Port,
-	'node_modules/web-ext-utils/browser/': { browserAction, pageAction, Tabs, Messages, runtime, },
-	'node_modules/web-ext-utils/browser/version': { gecko, fennec, },
-	'node_modules/web-ext-utils/loader/': { ContentScript, },
+	'node_modules/es6lib/functional': { noop, },
+	'node_modules/web-ext-utils/browser/': { BrowserAction = noop, browserAction = noop, pageAction = noop, Tabs, Messages, runtime, },
+	'node_modules/web-ext-utils/browser/version': { gecko, },
+	'node_modules/web-ext-utils/loader/': { ContentScript, detachFormTab, },
 	'node_modules/web-ext-utils/update/': updated,
 	'node_modules/web-ext-utils/utils/': { reportError, showExtensionTab, },
 	'common/options': options,
@@ -11,7 +11,8 @@
 	require,
 }) => {
 
-options.debug.value && console.info('Ran updates', updated);
+let debug; options.debug.whenChange(value => (debug = value));
+debug && console.info('Ran updates', updated);
 
 
 // Messages
@@ -35,12 +36,9 @@ options.include.children.incognito.whenChange(value => {
 });
 options.debug.whenChange(value => (require('node_modules/web-ext-utils/loader/').debug = value));
 options.debug.whenChange(updateConfig);
-options.advanced.children.fallback.whenChange(updateConfig);
-options.advanced.children.fallback.children.always.whenChange(updateConfig);
-options.advanced.children.touchMode.whenChange(updateConfig);
-options.advanced.children.showDelay.whenChange(updateConfig);
+options.advanced.onAnyChange(updateConfig);
 function updateConfig() { content.modules = { 'content/index': {
-	debug: options.debug.value,
+	debug: debug,
 	fallback: options.advanced.children.fallback.value && {
 		always: options.advanced.children.fallback.children.always.value,
 	},
@@ -48,43 +46,39 @@ function updateConfig() { content.modules = { 'content/index': {
 	showDelay: options.advanced.children.showDelay.value,
 }, }; }
 
-browserAction && browserAction.onClicked.addListener(onClick);
+browserAction.onClicked.addListener(onClick);
 async function onClick() { try {
 
 	const tab = (await Tabs.query({ currentWindow: true, active: true, }))[0];
-	(await content.applyToFrame(tab.id, 0));
+	const text = (await BrowserAction.getBadgeText({ tabId: tab.id, }));
+	if (text) {
+		detachFormTab(tab.id, 0);
+	} else {
+		onMatch(...(await content.applyToFrame(tab.id, 0)));
+	}
 
 } catch (error) { reportError(error); throw error; } }
 
-fennec && pageAction && content.onMatch.addListener(({ tabId, }) => pageAction.show(tabId));
-fennec && pageAction && pageAction.onClicked.addListener(openOptionsPage);
+pageAction.onClicked.addListener(openOptionsPage);
+browserAction.setBadgeBackgroundColor({ color: [ 0x00, 0x7f, 0x00, 0x60, ], });
 
-content.onMatch.addListener(({
-	tabId, frameId, incognito,
-	onPageHide, onPageShow, onRemove,
-}) => {
-	if (!options.debug.value) { return; }
-	console.debug('match frame', tabId, frameId, incognito);
-	onPageHide.addListener(() => console.debug('hide frame', tabId, frameId));
-	onPageShow.addListener(() => console.debug('show frame (again)', tabId, frameId));
-	onRemove.addListener(() => console.debug('frame removed', tabId, frameId));
+content.onMatch.addListener(onMatch); function onMatch(frame, url, done) {
+	done.catch(reportError);
+	!frame.frameId && pageAction.show(frame.tabId);
+	!frame.frameId && browserAction.setBadgeText({ tabId: frame.tabId, text: '✓', });
+	debug && console.debug('match frame', frame.tabId, frame.frameId, frame.incognito);
+	frame.onRemove.addListener(frame => debug && console.debug('frame removed', frame));
+}
+content.onShow.addListener(frame => {
+	!frame.frameId && browserAction.setBadgeText({ tabId: frame.tabId, text: '✓', });
+	debug && console.debug('show frame (again)', frame);
+});
+content.onHide.addListener(frame => {
+	!frame.frameId && browserAction.setBadgeText({ tabId: frame.tabId, text: '', });
+	debug && console.debug('hide frame', frame);
 });
 
 (await content.applyNow());
-
-
-// CSP fallback
-runtime.onConnect.addListener(async _port => {
-	if (_port.name === 'require.scriptLoader') { return; }
-	const port = new Port(_port, Port.web_ext_Port);
-	port.tabId = _port.sender.tab && _port.sender.tab.id;
-	switch (_port.name) {
-		case 'overlay-fallback': {
-			Fallback.add(port);
-		} break;
-		default: throw new Error(`Bad connect "${ _port.name }"`);
-	}
-});
 
 
 // fixes

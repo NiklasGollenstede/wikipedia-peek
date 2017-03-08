@@ -243,11 +243,6 @@ if (!inContent) {
 	}
 }
 
-const options = (await new Options({ model, }));
-try {
-	require('node_modules/web-ext-utils/loader/content')
-	.onUnload.addListener(() => options.destroy());
-} catch (_) { /* not in content */ }
-return options.children;
+return (await new Options({ model, })).children;
 
 }); })(this);
