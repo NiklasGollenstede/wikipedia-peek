@@ -8,8 +8,8 @@ port.addHandlers({
 		content.color = style.color;
 		content.fontFamily = style.fontFamily;
 		content.fontSize = style.fontSize +'%';
-		popup && (content.maxHeight = '100vh');
-		popup && (content.overflowY = 'auto');
+		popup && (document.body.maxHeight = '100vh');
+		popup && (document.body.overflowY = 'auto');
 		background.backgroundColor = style.backgroundColor;
 		background.borderColor = popup ? 'transparent' : style.color;
 		background.opacity = (1 - style.transparency / 100);
@@ -32,14 +32,15 @@ port.addHandlers({
 		document.querySelector('#content').innerHTML = '';
 		document.body.classList.remove('loading');
 	},
-	'await click'() {
-		return new Promise(onclick => document.addEventListener('click', () => onclick(), { once: true, }));
+	await(type) {
+		return new Promise(onclick => document.addEventListener(type, () => onclick(), { once: true, }));
 	},
+	isHovered() { return document.body.matches(':hover'); },
 });
 
 function size() {
 	const element = document.body, size = document.body.getBoundingClientRect();
-	return { width: element.scrollWidth || size.width, height: size.height || element.scrollHeight, devicePixelRatio, };
+	return { width: size.width, scrollWidth: element.scrollWidth, height: size.height, scrollHeight: element.scrollHeight, dpr: devicePixelRatio, };
 }
 
 window.resize = () => port.post('setSize', size());

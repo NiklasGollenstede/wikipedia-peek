@@ -9,9 +9,9 @@ let checking = false; async function onHover(event) {
 	if (checking || target.contains(event.target)) { return; }
 	checking = true; try { for (let i = 0; i < 10; ++i) {
 		(await sleep(HOVER_HIDE_DELAY / 8));
-		// moving the cursor over a window on top of the page doesn't remove :hover in chrome
 		if (!target || target.matches(':hover') || !document.body.matches(':hover')) { return; }
 	} } finally { checking = false; }
+	if ((await request('Fallback.isHovered'))) { return; } // moving the cursor over a window on top of the page doesn't remove :hover in chrome, so do one final test
 	document.removeEventListener('mousemove', onHover);
 	Overlay.hide();
 }

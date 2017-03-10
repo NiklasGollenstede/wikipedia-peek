@@ -24,7 +24,7 @@ function getStyle() { return {
 let view = null, getView = null;
 
 Views.setHandler(function fallback(view) {
-	getView(view);
+	getView ? getView(view) : view.close();
 });
 
 const methods = {
@@ -40,12 +40,13 @@ const methods = {
 		}));
 		view = (await new Promise(got => (getView = got)));
 		view.tabId = tab.id;
+		if (!view.document.hasFocus()) { return void methods.hide(); }
 
-		closeOnBlur.value && view.addEventListener('blur', methods.hide);
-		view.addEventListener('unload', () => { view = null; port.destroy(); });
+		closeOnBlur.value && view.addEventListener('blur', async () => view && (!view.port || !(await view.port.request('isHovered'))) && methods.hide());
+		view.addEventListener('unload', () => { view && view.port && view.port.destroy(); view = view.port = null; });
 		view.document.title = `Fallback - Wikipedia Peek`;
 
-		const port = (await makeSandbox(js, {
+		const port = view.port = (await makeSandbox(js, {
 			html: html,
 			srcUrl: require.toUrl('content/panel.js'),
 			host: view.document.body, // needs to reside in the view, otherwise firefox won't give the elements any dimensions
@@ -56,19 +57,20 @@ const methods = {
 			width: 'calc(100vw + 2px)', height: 'calc(100vh + 2px)',
 		});
 		Windows && port.addHandler(setSize);
-		!Windows && closeOnBlur.value && port.request('await click').then(methods.hide);
+		!Windows && closeOnBlur.value && port.request('await', 'click').then(methods.hide).catch(() => 0);
 
 		(await port.request('setStyle', getStyle(), true));
 		const parent  = Windows && (await Windows.get((await Tabs.get(this.tab.id)).windowId));
 		const content = (await port.request('show', preview, parent ? parent.width - 20 : 999999));
 		Windows && (await setSize(content));
+		if (!view.document.hasFocus()) { return void methods.hide(); }
 
 		async function setSize(content) {
-			if (gecko && content.devicePixelRatio && content.devicePixelRatio !== devicePixelRatio)
+			if (gecko && content.dpr && content.dpr !== devicePixelRatio)
 			{ global.devicePixelRatio = options.advanced.children.devicePixelRatio.value = content.devicePixelRatio; }
 			const addTop  = offsetTop[parent.state].value;
-			const height  = Math.min((content.height + 40), parent.height - addTop - anchor.top / devicePixelRatio) << 0;
-			const width   = content.width + 30 << 0;
+			const height  = Math.min((content.scrollHeight + 40), parent.height - addTop - anchor.top / devicePixelRatio) << 0;
+			const width   = content.scrollWidth + 30 << 0;
 			const top     = parent.top + addTop + anchor.top / devicePixelRatio << 0;
 			const left    = parent.left + Math.min(Math.max(0,
 				(anchor.left + anchor.width/2) / devicePixelRatio - width/2 + (gecko ? 10 : 3)
@@ -86,6 +88,8 @@ const methods = {
 		view && Tabs.remove(view.tabId);
 		view = null;
 	},
+
+	isHovered() { return view && view.port && view.port.request('isHovered'); },
 };
 
 return methods;

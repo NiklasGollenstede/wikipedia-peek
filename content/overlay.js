@@ -3,13 +3,11 @@
 	'common/options': options,
 	'common/sandbox': makeSandbox,
 	'./panel.html': html,
-	'./panel.css': css,
 	'./panel.js': js,
 	'./': { request, sleep, },
 	require,
 }) => {
 
-const SPINNER_SIZE = (/SPINNER_SIZE\ ?\*\/\ ?(\d+)px/).exec(css)[1];
 const HOVER_HIDE_DELAY = 230; // ms
 const style = options.style.children;
 let target = null, state = 'hidden';
@@ -20,7 +18,7 @@ const port = (await makeSandbox(js, {
 if (!port) { return false; } // can't return null
 const frame = port.frame;
 
-function setSize({ width, height, }) {
+function setSize({ scrollWidth: width, height, }) {
 	frame.style.width  = width  +'px';
 	frame.style.height = height +'px';
 	const position = frame.getBoundingClientRect();

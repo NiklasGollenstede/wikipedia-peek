@@ -1,5 +1,5 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	'node_modules/web-ext-utils/browser/': { inContent, },
+	'node_modules/web-ext-utils/browser/': { manifest, inContent, },
 	'node_modules/web-ext-utils/browser/version': { gecko, fennec, },
 	'node_modules/web-ext-utils/options/': Options,
 	require,
@@ -11,7 +11,7 @@ const model = {
 	include: {
 		title: 'Included Sites',
 		description: String.raw`
-			A list of sites on which this extension should work by default, without clicking it's icon.<br>
+			This list controls which sites ${ manifest.name } displays previrews <i>on</i> by default, without clicking it's icon.<br>
 			Specify as <a href="https://developer.mozilla.org/Add-ons/WebExtensions/Match_patterns">Match Patterns</a>
 			or <a href="https://regex101.com/">Regular Expressions</a> (advanced, must start with <code>^</code> and end with <code>$</code>).<br>
 			Examples:<ul>
@@ -198,7 +198,11 @@ if (!inContent) {
 	const children = { };
 	model.loaders = {
 		title: `Content Loader Modules`,
-		expanded: false,
+		description: `${ manifest.name } gets the information it displays from a couple of sources.
+		<br>This secton controls which method to use to get previews for which kind of link.
+		For each link encountered on an <i>Included Site</i> ${ manifest.name } will check each loader,
+		whose <i>Include Targets</i> match the link, in <i>Priority</i> order high to low.`,
+		expanded: true,
 		default: true,
 		children: children,
 	};
@@ -212,17 +216,17 @@ if (!inContent) {
 		children[name] = {
 			title: loader.title,
 			description: loader.description,
-			expanded: false,
+			expanded: name === 'readability',
 			default: true,
 			children: {
 				priority: {
 					default: loader.priority,
 					restrict: { type: 'number', },
-					input: { type: 'number', prefix: 'Priority:', suffix: 'If multiple loaders match, the ones with higher priority will be used first.', },
+					input: { type: 'number', prefix: 'Priority:', },
 				},
 				includes: {
 					title: 'Include Targets',
-					description: `List of include patterns (see Included Sites) matching URLs for which this loader will be considered`,
+					description: `List of include patterns (see Included Sites) matching URLs for which this loader will be considered.`,
 					maxLength: Infinity,
 					default: loader.includes,
 					restrict: { unique: '.', match: {

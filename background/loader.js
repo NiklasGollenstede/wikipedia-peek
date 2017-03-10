@@ -3,6 +3,7 @@
 	'node_modules/web-ext-utils/utils/files': { readDir, },
 	'node_modules/web-ext-utils/loader/': { parseMatchPatterns, },
 	'common/options': options,
+	require,
 }) => {
 
 const loaders = (await Promise.all(readDir('background/loaders').map(name => require.async('background/loaders/'+ name.slice(0, -3)))));
@@ -37,7 +38,7 @@ return {
 		for (const loader of loaders) { try {
 			if (!loader.includes.some(_=>_.test(url))) { continue; }
 			const content = (await loader.load(url));
-			if (!content) { continue; }
+			if (!content == null) { continue; }
 			memCache.set(url, content);
 			return content;
 		} catch(error) {

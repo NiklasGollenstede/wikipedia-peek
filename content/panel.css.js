@@ -43,7 +43,7 @@ body {
 	display: none;
 }
 .loading .load-spinner, .load-spinner.loading {
-	font-size: /* SPINNER_SIZE */ 40px; /* that comment must stay there */
+	font-size: 40px; /* outer diameter */
 	display: block; width: 1.2em; height: 1.2em; /* give the parent the proper size */
 	margin: 0; padding: 0;
 }

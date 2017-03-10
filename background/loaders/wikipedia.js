@@ -1,10 +1,11 @@
 (function() { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/network': { HttpRequest, },
 	'background/utils': { extractSection, article, setFunctionOnChange, },
+	require,
 	module,
 }) => {
 
-let options, allOptions; require.async('common/options').then(_ => {
+let options, allOptions; require([ 'common/options', ], _ => {
 	allOptions = _; options = _.loaders.children[Self.name].children.options.children;
 	setFunctionOnChange(Self, options, getApiPath);
 	setFunctionOnChange(Self, options, getArticleName);
@@ -21,7 +22,7 @@ function getApiPath(url) {
 function getArticleName(url) {
 	url = new URL(url);
 	const title = url.pathname.replace(/^\/(?:wiki\/)?/, '');
-	if (url.search || (/^(?:File|Special|Portal):|\.(?:jpe?g|png|gif|svg)$/).test(title)) { return null; }
+	if (url.search || (/^(?:File|Special|Portal):|\.(?:jpe?g|png|gif|svg)$/).test(title)) { return ''; }
 	const section = url.hash.slice(1);
 	return title +'#'+ section;
 }
