@@ -6,7 +6,7 @@
 	'./panel.js': js,
 	'./': { request, sleep, },
 	require,
-}) => {
+}) => { /* global document, setTimeout, */
 
 const HOVER_HIDE_DELAY = 230; // ms
 const style = options.style.children;

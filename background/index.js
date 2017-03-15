@@ -1,6 +1,6 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/functional': { noop, },
-	'node_modules/web-ext-utils/browser/': { browserAction = noop, pageAction = noop, Tabs, Messages, runtime, },
+	'node_modules/web-ext-utils/browser/': { manifest, browserAction = noop, pageAction = noop, Tabs, Messages, runtime, },
 	'node_modules/web-ext-utils/browser/version': { gecko, },
 	'node_modules/web-ext-utils/loader/': { ContentScript, detachFormTab, getFrame, },
 	'node_modules/web-ext-utils/update/': updated,
@@ -12,7 +12,7 @@
 }) => {
 
 let debug; options.debug.whenChange(value => (debug = value));
-debug && console.info('Ran updates', updated);
+debug && console.info(manifest.name, 'loaded, updated', updated);
 
 
 // Messages
@@ -40,11 +40,15 @@ options.debug.whenChange(updateConfig);
 options.advanced.onAnyChange(updateConfig);
 function updateConfig() { content.modules = { 'content/index': {
 	debug: debug,
+	touchMode: options.advanced.children.touchMode.value,
+	excludeAnchor: {
+		match: options.advanced.children.excludeAnchor.children.match.values.current,
+		contain: options.advanced.children.excludeAnchor.children.contain.values.current,
+	},
+	showDelay: options.advanced.children.showDelay.value,
 	fallback: options.advanced.children.fallback.value && {
 		always: options.advanced.children.fallback.children.always.value,
 	},
-	touchMode: options.advanced.children.touchMode.value,
-	showDelay: options.advanced.children.showDelay.value,
 }, }; }
 
 browserAction.onClicked.addListener(onClick);
@@ -80,6 +84,8 @@ content.onHide.addListener(frame => {
 	!frame.frameId && browserAction.setBadgeText({ tabId: frame.tabId, text: '', });
 	debug && console.debug('hide frame', frame);
 });
+
+content.onHide.addListener(() => Fallback.hide());
 
 (await content.applyNow());
 

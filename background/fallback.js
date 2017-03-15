@@ -66,15 +66,15 @@ const methods = {
 		if (!view.document.hasFocus()) { return void methods.hide(); }
 
 		async function setSize(content) {
-			if (gecko && content.dpr && content.dpr !== devicePixelRatio)
+			if (gecko && content.dpr && content.dpr !== global.devicePixelRatio)
 			{ global.devicePixelRatio = options.advanced.children.devicePixelRatio.value = content.devicePixelRatio; }
 			const addTop  = offsetTop[parent.state].value;
-			const height  = Math.min((content.scrollHeight + 40), parent.height - addTop - anchor.top / devicePixelRatio) << 0;
-			const width   = content.scrollWidth + 30 << 0;
-			const top     = parent.top + addTop + anchor.top / devicePixelRatio << 0;
+			const height  = Math.min((content.scrollHeight + 40), parent.height - addTop - anchor.top / global.devicePixelRatio) <<0;
+			const width   = content.scrollWidth + 30 <<0;
+			const top     = parent.top + addTop + anchor.top / global.devicePixelRatio <<0;
 			const left    = parent.left + Math.min(Math.max(0,
-				(anchor.left + anchor.width/2) / devicePixelRatio - width/2 + (gecko ? 10 : 3)
-			), parent.width - width) << 0;
+				(anchor.left + anchor.width/2) / global.devicePixelRatio - width/2 + (gecko ? 10 : 3)
+			), parent.width - width) <<0;
 
 			(await Windows.update(tab.windowId, {
 				top, left, width, height, state: 'normal',

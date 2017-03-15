@@ -53,9 +53,15 @@ function fuzzyFind(array, string) {
 }
 
 
+function attr(string) {
+	return '"'+ (string || '').replace(/"/g, '&quot;') +'"'; // should be save
+}
+
+/* global devicePixelRatio, navigator, document, window, setTimeout, */
+
 function article({ html, thumb = { width: 0, height: 0, }, lang = '', }) {
 	const [ text, length, ] = sanatize(html);
-	if (!thumb.source && length < 20) { return null; }
+	if (!thumb.source && length < 20) { return ''; }
 	const minHeight = thumb.height / devicePixelRatio + 20;
 	const thumbWidth = thumb.width / devicePixelRatio;
 	let   width = Math.sqrt(length * 225 + (thumb.height / devicePixelRatio + 20) * (thumb.width / devicePixelRatio + 20));
@@ -86,6 +92,29 @@ function article({ html, thumb = { width: 0, height: 0, }, lang = '', }) {
 	);
 }
 
+function image({ src, img, title, description, base, }) { return (
+	(base ? `<base href=${ attr(base) }>`: '')
+	+ `<style>
+		#content { padding: 4px; text-align: center; }
+		#title { font-variant: small-caps; }
+	</style>`
+	+ (title ? `<div id="title">${ sanatize(title)[0] }</div>` : '')
+	+ (img || `<img src=${ attr(src) } alt=${ attr(title) }>`)
+	+ (description ? `<div id="description">${ sanatize(description)[0] }</div>` : '')
+	+ `<script>(`+ (() => {
+		document.body.classList.add('loading');
+		const img = document.querySelector('#content>img');
+		img.addEventListener('load', async () => {
+			document.body.classList.remove('loading');
+			const width = img.naturalWidth  / devicePixelRatio;
+			img.style.width = width  +'px';
+			document.querySelector('#content').style.width = width + 8 +'px';
+			(await window.resize());
+			setTimeout(() => window.resize(), 10);
+		});
+	}) +`)();</script>`
+); }
+
 
 function setFunctionOnChange(loader, options, func, name = func.name) {
 	options[name].whenChange(async value => { try {
@@ -101,6 +130,7 @@ return {
 	extractSection,
 	fuzzyFind,
 	article,
+	image,
 	setFunctionOnChange,
 };
 

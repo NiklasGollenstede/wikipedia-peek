@@ -1,17 +1,16 @@
-(function() { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+(function(global) { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/network': { HttpRequest, },
 	'background/utils': { fuzzyFind, article, },
+	require,
 	module,
-}) => {
+}) => { /* global URL, */
 
-let allOptions; require.async('common/options').then(_ => {
-	allOptions = _;
-});
+let advanced; require([ 'common/options', ], _ => (advanced = _.advanced.children));
 
 const Self = {
 	name: module.id.split('/').pop(),
 	title: `Wikia.com`,
-	description: ``,
+	description: `Works for Wikia.com and possibly for other pages using their technology.`,
 
 	priority: 1,
 	includes: [ '*://*.wikia.com/wiki/*', ],
@@ -26,7 +25,7 @@ const Self = {
 
 	async doLoad(api, title, section) {
 
-		const thumbPx = allOptions.thumb.children.size.value * devicePixelRatio;
+		const thumbPx = advanced.thumb.children.size.value * global.devicePixelRatio;
 
 		title.includes(',') && console.warn(`The title "${ title }" contains commas and may not load correctly`);
 
@@ -43,7 +42,7 @@ const Self = {
 			return Self.doLoad(api, title, section);
 		}
 
-		const thumb = allOptions.thumb.value && page.thumbnail && page.original_dimensions && {
+		const thumb = advanced.thumb.value && page.thumbnail && page.original_dimensions && {
 			source: page.thumbnail
 			.replace(/\/x-offset\/\d+/, '/x-offset/0').replace(/\/window-width\/\d+/, '/window-width/'+ page.original_dimensions.width)
 			.replace(/\/y-offset\/\d+/, '/y-offset/0').replace(/\/window-height\/\d+/, '/window-height/'+ page.original_dimensions.height),
@@ -65,4 +64,4 @@ const Self = {
 
 return Self;
 
-}); })();
+}); })(this);

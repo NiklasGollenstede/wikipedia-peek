@@ -5,7 +5,11 @@
 
 const style = options.style.children;
 const advanced = options.advanced.children;
-const oldKeys = [ 'options.theme', 'options.fontSize', 'options.relativeWidth', 'options.transparency', 'options.touchMode', 'options.showDelay', ];
+const oldKeys = [
+	'options.thumb',
+	'options.fontSize', 'options.relativeWidth', 'options.transparency', 'options.touchMode', 'options.showDelay',
+	'options.thumb', 'options.thumb.size',
+];
 const data = (await Storage.sync.get(oldKeys));
 
 switch (data['options.theme'] && data['options.theme'][0]) {
@@ -20,6 +24,9 @@ data['options.relativeWidth']  && data['options.relativeWidth'].length  && (styl
 data['options.transparency']   && data['options.transparency'].length   && (style.transparency.value   = data['options.transparency'][0]);
 data['options.touchMode']      && data['options.touchMode'].length      && (advanced.touchMode.value   = data['options.touchMode'][0]);
 data['options.showDelay']      && data['options.showDelay'].length      && (advanced.showDelay.value   = data['options.showDelay'][0]);
+
+data['options.thumb']          && data['options.thumb'].length          && (advanced.thumb.value       = data['options.thumb'][0]);
+data['options.thumb.size']     && data['options.thumb.size'].length     && (advanced.thumb.size.value  = data['options.thumb.size'][0]);
 
 (await Storage.sync.remove(oldKeys));
 

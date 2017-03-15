@@ -24,10 +24,8 @@ body {
 }
 #background { /* background with custom transparency */
 	position: absolute;
-	top: 0;
-	left: 0;
-	width: calc(100% - 2px);
-	height: calc(100% - 2px);
+	top: 0; bottom: 0;
+	left: 0; right: 0;
 	z-index: -1;
 	background-color: white;
 	border: 1px solid;

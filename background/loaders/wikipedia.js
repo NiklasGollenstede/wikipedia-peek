@@ -1,20 +1,23 @@
-(function() { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+(function(global) { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/network': { HttpRequest, },
 	'background/utils': { extractSection, article, setFunctionOnChange, },
 	require,
 	module,
-}) => {
+}) => { /* global URL, */
 
-let options, allOptions; require([ 'common/options', ], _ => {
-	allOptions = _; options = _.loaders.children[Self.name].children.options.children;
+let options, advanced; require([ 'common/options', ], _ => {
+	advanced = _.advanced.children; options = _.loaders.children[Self.name].children.options.children;
 	setFunctionOnChange(Self, options, getApiPath);
 	setFunctionOnChange(Self, options, getArticleName);
 });
 
 function getApiPath(url) {
 	url = new URL(url);
-	if ((/(?:^|\.)(?:wiki.*?|mediawiki)\.org$/).test(url.hostname)) {
+	if ((/(?:^|\.)(?:wiki[^\.]*?|mediawiki)\.org$/).test(url.hostname)) {
 		return 'https://'+ url.host +'/w/api.php'; // always use https
+	}
+	if ((/(?:^|\.)gamepedia\.com$/).test(url.hostname)) {
+		return 'https://'+ url.host +'/api.php'; // always use https
 	}
 	return null;
 }
@@ -22,7 +25,8 @@ function getApiPath(url) {
 function getArticleName(url) {
 	url = new URL(url);
 	const title = url.pathname.replace(/^\/(?:wiki\/)?/, '');
-	if (url.search || (/^(?:File|Special|Portal):|\.(?:jpe?g|png|gif|svg)$/).test(title)) { return ''; }
+	if (url.search || (/^(?:File|Special|Portal):/).test(title)) { return ''; }
+	if ((/\.(?:jpe?g|png|gif|svg)$/).test(title)) { return null; }
 	const section = url.hash.slice(1);
 	return title +'#'+ section;
 }
@@ -30,10 +34,15 @@ function getArticleName(url) {
 const Self = {
 	name: module.id.split('/').pop(),
 	title: `Wikipedia and Mediawiki`,
-	description: ``,
+	description: `Works for links to Wikipedia articles and most other Wikimadia resources such as Wikinews.
+	<br>If configured correctly, it should also work with Mediawikis hosted by other organizations.`,
 
 	priority: 2,
-	includes: [ '*://*.wikipedia.org/wiki/*', '*://*.mediawiki.org/wiki/*', String.raw`^https?://.*\.wiki[^\.\/]*?\.org/wiki/.*$`,  ],
+	includes: [
+		'*://*.wikipedia.org/wiki/*', '*://*.mediawiki.org/wiki/*',
+		String.raw`^https?://.*\.wiki[^\.\/]*?\.org/wiki/.*$`,
+		'*://*.gamepedia.com/*',
+	],
 	options: {
 		getApiPath: {
 			title: 'getApiPath',
@@ -70,7 +79,7 @@ const Self = {
 
 	async doLoad(api, title, section, lang) {
 
-		const thumbPx = allOptions.thumb.children.size.value * devicePixelRatio;
+		const thumbPx = advanced.thumb.children.size.value * global.devicePixelRatio;
 		const src = (
 			api +'?action=query&format=json&formatversion=2&redirects='
 			+ '&prop=extracts|pageimages'
@@ -91,7 +100,7 @@ const Self = {
 
 		const page = response.query.pages[0];
 
-		const thumb = allOptions.thumb.value && page.thumbnail || { width: 0, height: 0, };
+		const thumb = advanced.thumb.value && page.thumbnail || { width: 0, height: 0, };
 		const html = extractSection(page.extract || '', section).replace(/<p>\s*<\/p>/, '');
 
 		return article({ html, thumb, lang, });
@@ -100,4 +109,4 @@ const Self = {
 
 return Self;
 
-}); })();
+}); })(this);

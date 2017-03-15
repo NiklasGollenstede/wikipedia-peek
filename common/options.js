@@ -44,20 +44,6 @@ const model = {
 			},
 		},
 	},
-	thumb: {
-		title: 'Thumbnail Images',
-		expanded: false,
-		default: true,
-		input: { type: 'bool', suffix: `load thumbnails`, },
-		children: [
-			{
-				name: 'size',
-				default: 150,
-				restrict: { type: 'number', from: 40, to: 400, },
-				input: { type: 'integer', prefix: `size`, suffix: 'px', },
-			},
-		],
-	},
 	style: {
 		title: `Preview Style`,
 		expanded: false,
@@ -106,6 +92,19 @@ const model = {
 		expanded: false,
 		default: true,
 		children: {
+			thumb: {
+				title: 'Thumbnail Images',
+				expanded: false,
+				default: true,
+				input: { type: 'bool', suffix: `load thumbnails`, },
+				children: {
+					size: {
+						default: 150,
+						restrict: { type: 'number', from: 40, to: 400, },
+						input: { type: 'integer', prefix: `size`, suffix: 'px', },
+					},
+				},
+			},
 			touchMode: {
 				title: 'Touch Mode',
 				description: `If touch mode is enabled, the previews won't show on hover but on the first click/tap on a link, a second click/tap will navigate.
@@ -118,9 +117,31 @@ const model = {
 					{ label: 'Always on',    value: true, },
 				], },
 			},
+			excludeAnchor: {
+				title: 'Exclude Anchor Elements',
+				description: `It is not desirable to show previews for all kinds of links a page can have, therefore exclude link elements that:`,
+				expanded: false,
+				default: true,
+				children: {
+					match: {
+						title: 'Match',
+						description: `any of these CSS selectors themselves`,
+						maxLength: Infinity,
+						default: [ ],
+						input: { type: 'string', default: '.no-preview, .no-preview *', },
+					},
+					contain: {
+						title: 'Contain',
+						description: `an element that matches any of these CSS selectors`,
+						maxLength: Infinity,
+						default: [ 'img', ],
+						input: { type: 'string', default: 'img', },
+					},
+				},
+			},
 			showDelay: {
 				title: 'Show delay',
-				description: 'Time you have to hover over a link to load the preview',
+				description: `Time you have to hover over a link to load the preview`,
 				expanded: false,
 				default: 500,
 				restrict: { type: 'number', from: 0, to: 2000, },
@@ -159,31 +180,32 @@ const model = {
 						},
 					},
 					closeOnBlur: {
-						description: ` `,
+						description: ` `, // margin
 						default: true,
 						input: { type: 'checkbox', suffix: 'close on blur', },
 					},
 				},
-			},
-			resetCache: {
-				title: 'Reset Cache',
-				default: Math.random().toString(32).slice(2),
-				input: { type: 'random', label: 'Reset', },
 			},
 			devicePixelRatio: {
 				title: 'devicePixelRatio',
 				description: `Nowadays many devices have high resolution displays.
 				To load images in a quality fitting your display and to position the popup windows correctly,
 				this extension needs to know that scale factor.<br>
-				It should automatically adjust itself and unless you have zoomed this page, the value should be set to <code>${ devicePixelRatio }</code>.`,
+				It should automatically adjust itself and unless you have zoomed this page, the value should be set to <code>${ devicePixelRatio }</code>.`, // TODO:  this obviously doesn't work anymore ...
 				expanded: false,
 				default: 1,
 				hidden: !gecko,
 				restrict: { type: 'number', from: 0.5, to: 8, },
 				input: { type: 'number', suffix: 'device pixel per CSS px', },
 			},
+			resetCache: {
+				description: ` `, // margin
+				default: Math.random().toString(32).slice(2),
+				input: { type: 'random', label: 'Reset Cache', suffix: `Click this button to clear the in-memory cache after you have adjusted Loader Module rules.`, },
+			},
 		},
 	},
+	loaders: undefined,
 	debug: {
 		title: 'Debug Level',
 		expanded: false,

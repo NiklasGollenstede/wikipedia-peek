@@ -11,9 +11,9 @@ module.exports = function({ options, /*packageJson,*/ manifestJson, files, }) {
 	manifestJson.content_security_policy = `script-src 'self' 'unsafe-eval' 'sha256-QMSw9XSc08mdsgM/uQhEe2bXMSqOw4JvoBdpHZG21ps='; object-src 'self';`; // see common/sandbox.js
 
 	if(options.fennec) {
-		manifestJson.page_action.default_title = `Open ${ manifestJson.name } Options`;
+		manifestJson.page_action.default_title = `Open ${ manifestJson.name } options`;
 	} else {
-		manifestJson.browser_action.default_title = `Apply ${ manifestJson.name } to the current page`;
+		manifestJson.browser_action.default_title = `Toggle ${ manifestJson.name } on the current page. Visit the options to make permanent changes`;
 	}
 
 	files.node_modules = {

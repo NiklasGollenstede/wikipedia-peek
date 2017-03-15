@@ -2,16 +2,20 @@
 	'node_modules/web-ext-utils/loader/content': { onUnload, },
 	require,
 	module,
-}) => {
+}) => { /* global window, document, location, setTimeout, clearTimeout, */
 
 const chrome = (global.browser || global.chrome);
 const TOUCH_MODE_TIMEOUT = 300; // ms
 const {
 	debug = 0,
 	touchMode = 'auto',
+	excludeAnchor: {
+		match: doNotMatch = [ ],
+		contain: doNotContain = [ ],
+	} = { },
 	showDelay = 500,
 	fallback = true,
-} = module.config() || { }; // TODO: actually set these
+} = module.config() || { };
 let loading = null; // the link that is currently being loaded for
 let overlay = null; /* require.async('./overlay') */
 
@@ -97,7 +101,18 @@ function shouldIgnore(link) { return (
 	|| overlay && overlay.target === link && overlay.state !== 'hidden'
 	|| (/^(?:about|blob|data|javascript|mailto):/).test(link.href)
 	|| equalExceptHash(link.href, location.href)
+	|| excludeAnchor(link)
 ); }
+
+function excludeAnchor(link) {
+	for (const selector of doNotMatch) {
+		try { if (link.matches(selector)) { return true; } } catch (_) { }
+	}
+	for (const selector of doNotContain) {
+		try { if (link.querySelector(selector)) { return true; } } catch (_) { }
+	}
+	return false;
+}
 
 /**
  * Primary event listeners. Called when an applicable link is hovered or touched.
@@ -105,7 +120,7 @@ function shouldIgnore(link) { return (
 let lastHover; function onMouseMove({ target: link, }) {
 	if (inTouchMode()) { return; }
 	if (!link.closest) { link = link.parentNode; } // for text nodes
-	link = link.closest('a');
+	link = link && link.closest('a');
 	if (!link) { lastHover = null; return; }
 	if (lastHover === link) { return; }
 	lastHover = link;
