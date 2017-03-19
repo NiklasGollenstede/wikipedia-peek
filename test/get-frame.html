@@ -1,0 +1,25 @@
+<a href="https://en.wikipedia.org/wiki/Gecko_(software)">LINK</a>
+<script type="text/javascript">(function(global) { 'use strict'; /* global document, XMLHttpRequest, */
+
+/**
+ * This test demonstrates that, unfortunately, it is possible for page scripts to read the blob:-URL used by the frame of /common/sandbox.js.
+ */
+
+//	new MutationObserver(_=>_.forEach(_=>_.addedNodes.forEach(element => {
+//		inserted(element);
+//		element.querySelectorAll && element.querySelectorAll('*').forEach(inserted);
+//	}))).observe(document, { subtree: true, childList: true, });
+
+	document.addEventListener('DOMNodeInserted', event => inserted(event.target));
+
+	function inserted(element) {
+		if (!element.matches || !element.matches('iframe')) { return; }
+
+		const url = element.src;
+
+		const xhr = new XMLHttpRequest;
+		xhr.open('GET', url, false);
+		xhr.send();
+		console.info('data', xhr.response.length);
+	}
+})(this);</script>

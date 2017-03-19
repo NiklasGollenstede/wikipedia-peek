@@ -54,6 +54,7 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 				'index.js',
 			],
 			utils: [
+				'event.js',
 				'files.js',
 				'index.js',
 				'inject.js',
