@@ -1,5 +1,5 @@
 /*eslint strict: ["error", "global"], no-implicit-globals: "off"*/ 'use strict'; /* globals module, */ // license: MPL-2.0
-module.exports = function({ options, /*packageJson,*/ manifestJson, files, }) {
+module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 
 	manifestJson.permissions.push(
 		'notifications',
@@ -10,11 +10,8 @@ module.exports = function({ options, /*packageJson,*/ manifestJson, files, }) {
 
 	manifestJson.content_security_policy = `script-src 'self' 'unsafe-eval' 'sha256-QMSw9XSc08mdsgM/uQhEe2bXMSqOw4JvoBdpHZG21ps='; object-src 'self';`; // see common/sandbox.js
 
-	if(options.fennec) {
-		manifestJson.page_action.default_title = `Open ${ manifestJson.name } options`;
-	} else {
-		manifestJson.browser_action.default_title = `Toggle ${ manifestJson.name } on the current page. Visit the options to make permanent changes`;
-	}
+	manifestJson.page_action && (manifestJson.page_action.default_title = `Open ${ manifestJson.name } options`);
+	manifestJson.browser_action && (manifestJson.browser_action.default_title = `Toggle ${ manifestJson.name } on the current page.\nVisit the options to make permanent changes`);
 
 	files.node_modules = {
 		es6lib: [

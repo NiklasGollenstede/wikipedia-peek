@@ -1,17 +1,18 @@
-require.config({ shim: { 'node_modules/readability/Readability': { exports: 'Readability', }, }, }); (function() { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+(function(global) { 'use strict'; prepare() && define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/network': { HttpRequest, },
 	'node_modules/readability/Readability': Readability,
 	'node_modules/regexpx/': RegExpX,
 	'node_modules/web-ext-utils/loader/': { parseMatchPatterns, },
 	'node_modules/web-ext-utils/utils/': { reportError, },
 	'background/utils': { article, },
+	require,
 	module,
-}) => {
+}) => { /* global URL, */
 
-let exclude, options; require.async('common/options').then(_ => {
+let exclude, options; require([ 'common/options', ], _ => {
 	options = _.loaders.children[Self.name].children.options.children;
-	options.exclude.whenChange((_, { current, }) => { try {
-		exclude = parseMatchPatterns(current);
+	options.exclude.whenChange(values => { try {
+		exclude = parseMatchPatterns(values);
 	} catch (error) { reportError(`Invalid URL pattern`, error); throw error; } });
 });
 
@@ -81,4 +82,7 @@ function makeURI(url) { return {
 	pathBase: url.protocol + "//" + url.host + url.pathname.substr(0, url.pathname.lastIndexOf("/") + 1),
 }; }
 
-}); })();
+}); function prepare() {
+	global.require.config({ shim: { 'node_modules/readability/Readability': { exports: 'Readability', }, }, });
+	return true;
+} })(this);

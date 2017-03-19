@@ -1,7 +1,7 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/functional': { noop, },
 	'node_modules/web-ext-utils/browser/': { manifest, browserAction = noop, pageAction = noop, Tabs, Messages, runtime, },
-	'node_modules/web-ext-utils/browser/version': { gecko, },
+	'node_modules/web-ext-utils/browser/version': { gecko, fennec, },
 	'node_modules/web-ext-utils/loader/': { ContentScript, detachFormTab, getFrame, },
 	'node_modules/web-ext-utils/update/': updated,
 	'node_modules/web-ext-utils/utils/': { reportError, showExtensionTab, },
@@ -11,9 +11,8 @@
 	require,
 }) => {
 
-let debug; options.debug.whenChange(value => (debug = value));
+let debug; options.debug.whenChange(([ value, ]) => (debug = value));
 debug && console.info(manifest.name, 'loaded, updated', updated);
-
 
 // Messages
 Messages.addHandler(function getPreview() { return Loader.getPreview(this, ...arguments); }); // eslint-disable-line no-invalid-this
@@ -26,16 +25,16 @@ const content = new ContentScript({
 	modules: [ 'content/index', ],
 });
 const active = content.active = new WeakSet;
-options.include.whenChange((_, { current, }) => {
-	try { content.include = current; } catch (error) { reportError(`Invalid URL pattern`, error); throw error; }
+options.include.whenChange(values => {
+	try { content.include = values; } catch (error) { reportError(`Invalid URL pattern`, error); throw error; }
 });
-options.include.children.exclude.whenChange((_, { current, }) => {
-	try { content.exclude = current; } catch (error) { reportError(`Invalid URL pattern`, error); throw error; }
+options.include.children.exclude.whenChange(values => {
+	try { content.exclude = values; } catch (error) { reportError(`Invalid URL pattern`, error); throw error; }
 });
-options.include.children.incognito.whenChange(value => {
+options.include.children.incognito.whenChange(([ value, ]) => {
 	content.incognito = value;
 });
-options.debug.whenChange(value => (require('node_modules/web-ext-utils/loader/').debug = value));
+options.debug.whenChange(([ value, ]) => (require('node_modules/web-ext-utils/loader/').debug = value));
 options.debug.whenChange(updateConfig);
 options.advanced.onAnyChange(updateConfig);
 function updateConfig() { content.modules = { 'content/index': {
@@ -63,12 +62,10 @@ async function onClick() { try {
 
 } catch (error) { reportError(error); throw error; } }
 
-pageAction.onClicked.addListener(openOptionsPage);
 browserAction.setBadgeBackgroundColor({ color: [ 0x00, 0x7f, 0x00, 0x60, ], });
 
 content.onMatch.addListener(onMatch); function onMatch(frame, url, done) {
 	done.catch(reportError);
-	!frame.frameId && pageAction.show(frame.tabId);
 	active.add(frame);
 	!frame.frameId && browserAction.setBadgeText({ tabId: frame.tabId, text: '✓', });
 	debug && console.debug('match frame', frame.tabId, frame.frameId, frame.incognito);
@@ -94,7 +91,12 @@ content.onHide.addListener(() => Fallback.hide());
 gecko && options.advanced.children.devicePixelRatio.whenChange(value => {
 	global.devicePixelRatio = value; // the devicePixelRatio in the background page is always 1
 });
-function openOptionsPage() { showExtensionTab(new URL(runtime.getManifest().options_ui.page, new URL('/', location)).pathname); }
+function openOptionsPage() { showExtensionTab(new global.URL(runtime.getManifest().options_ui.page, new global.URL('/', global.location)).pathname); }
+if (fennec) { // fennec doesn't provide any way to open the options
+	pageAction.onClicked.addListener(openOptionsPage);
+	content.onMatch.addListener(({ tabId, }) => pageAction.show(tabId)); // TabId is currently ignored anyway
+	global.addEventListener('unload', () => pageAction.hide(0)); // maybe this stopps the stacking of the icons when the extension reloads
+}
 
 
 // debugging

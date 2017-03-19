@@ -14,15 +14,15 @@ function sortLoaders() { loaders.sort((a, b) => {
 
 options.loaders.children.forEach(({ children: options, name, }) => {
 	const loader = loaders[name];
-	options.includes.whenChange((_, { current, }) => { try {
-		loader.includes = parseMatchPatterns(current);
+	options.includes.whenChange(values => { try {
+		loader.includes = parseMatchPatterns(values);
 	} catch (error) { reportError(`Invalid URL pattern`, error); throw error; } });
 	options.priority.onChange(sortLoaders);
 });
 
 const memCache = new Map;
 
-options.advanced.children.resetCache.onChange((_, values) => {
+options.advanced.children.resetCache.onChange((_, __, { values, }) => {
 	if (!values.isSet) { return; } values.reset();
 	memCache.clear();
 	reportSuccess('Cache cleared');

@@ -117,7 +117,7 @@ function image({ src, img, title, description, base, }) { return (
 
 
 function setFunctionOnChange(loader, options, func, name = func.name) {
-	options[name].whenChange(async value => { try {
+	options[name].whenChange(async ([ value, ]) => { try {
 		loader[name].destroy && loader[name].destroy();
 		loader[name] = options[name].values.isSet
 		? (await require.async('./evaluator')).newFunction('url', value) : func;

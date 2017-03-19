@@ -21,7 +21,7 @@
 		"readability": "mozilla/readability#1369f92",
 		"es6lib": "NiklasGollenstede/es6lib#65c97ce",
 		"regexpx": "NiklasGollenstede/regexpx#eebed29",
-		"web-ext-utils": "NiklasGollenstede/web-ext-utils#e8ef232",
+		"web-ext-utils": "NiklasGollenstede/web-ext-utils#9cf4b6b",
 		"web-ext-build": "NiklasGollenstede/web-ext-build#cafdc99"
 	},
 	"devDependencies": {

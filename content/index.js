@@ -97,7 +97,7 @@ async function showForElement(link, wait) {
 }
 
 function shouldIgnore(link) { return (
-	!link || loading === link
+	!link || loading === link || !link.href
 	|| overlay && overlay.target === link && overlay.state !== 'hidden'
 	|| (/^(?:about|blob|data|javascript|mailto):/).test(link.href)
 	|| equalExceptHash(link.href, location.href)
