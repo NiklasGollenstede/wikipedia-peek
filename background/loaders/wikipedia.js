@@ -73,7 +73,7 @@ const Self = {
 		const name = (await Self.getArticleName(url));
 		const lang = (/:\/\/([^.]*)/).exec(url)[1];
 		if (!api || !name) { return null; }
-		const [ , title, section, ] = (/^(.*?)(?:#.*)?$/).exec(name);
+		const [ , title, section, ] = (/^(.*?)(?:#(.*))?$/).exec(name);
 		return Self.doLoad(api, title, section, lang);
 	},
 
@@ -100,7 +100,7 @@ const Self = {
 
 		const page = response.query.pages[0];
 
-		const thumb = advanced.thumb.value && page.thumbnail || { width: 0, height: 0, };
+		const thumb = !section && advanced.thumb.value && page.thumbnail || { width: 0, height: 0, };
 		const html = extractSection(page.extract || '', section).replace(/<p>\s*<\/p>/, '');
 
 		return article({ html, thumb, lang, });

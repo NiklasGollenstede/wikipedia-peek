@@ -42,7 +42,7 @@ const Self = {
 			return Self.doLoad(api, title, section);
 		}
 
-		const thumb = advanced.thumb.value && page.thumbnail && page.original_dimensions && {
+		const thumb = !section && advanced.thumb.value && page.thumbnail && page.original_dimensions && {
 			source: page.thumbnail
 			.replace(/\/x-offset\/\d+/, '/x-offset/0').replace(/\/window-width\/\d+/, '/window-width/'+ page.original_dimensions.width)
 			.replace(/\/y-offset\/\d+/, '/y-offset/0').replace(/\/window-height\/\d+/, '/window-height/'+ page.original_dimensions.height),
