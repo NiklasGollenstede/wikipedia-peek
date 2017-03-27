@@ -29,6 +29,7 @@ options.advanced.children.resetCache.onChange((_, __, { values, }) => {
 });
 
 return {
+	clear(url) { if (url === undefined) { memCache.clear(); } else { memCache.delete(url);} },
 	async getPreview(sender, url) {
 
 		// (await new Promise(done => setTimeout(done, 99999999999)));

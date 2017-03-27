@@ -11,7 +11,7 @@
 	require,
 }) => {
 
-let debug; options.debug.whenChange(([ value, ]) => (debug = value));
+let debug; options.debug.whenChange(([ value, ]) => { debug = value; require('node_modules/web-ext-utils/loader/').debug = debug >= 2; });
 debug && console.info(manifest.name, 'loaded, updated', updated);
 
 // Messages
@@ -34,7 +34,6 @@ options.include.children.exclude.whenChange(values => {
 options.include.children.incognito.whenChange(([ value, ]) => {
 	content.incognito = value;
 });
-options.debug.whenChange(([ value, ]) => (require('node_modules/web-ext-utils/loader/').debug = value));
 options.debug.whenChange(updateConfig);
 options.advanced.onAnyChange(updateConfig);
 function updateConfig() { content.modules = { 'content/index': {
@@ -78,7 +77,7 @@ content.onShow.addListener(frame => {
 });
 content.onHide.addListener(frame => {
 	active.delete(frame);
-	!frame.frameId && browserAction.setBadgeText({ tabId: frame.tabId, text: '', });
+	!frame.frameId && (browserAction.setBadgeText({ tabId: frame.tabId, text: '', }) || noop).catch(_=>_); // can't catch in chrome
 	debug && console.debug('hide frame', frame);
 });
 

@@ -24,8 +24,8 @@ body {
 }
 #background { /* background with custom transparency */
 	position: absolute;
-	top: 0; bottom: 0;
-	left: 0; right: 0.5px; /* with dpi !== 1 and right === 0, the right border tends to be cut of for some sizes */
+	top: 0; left: 0;
+	bottom: 0.5px; right: 0.5px; /* with dpi !== 1 and bottom/right === 0, the borders tend to be cut of for some sizes */
 	z-index: -1;
 	background-color: white;
 	border: 1px solid;

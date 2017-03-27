@@ -62,15 +62,14 @@ function attr(string) {
 function article({ html, thumb = { width: 0, height: 0, }, lang = '', }) {
 	const [ text, length, ] = sanatize(html);
 	if (!thumb.source && length < 20) { return ''; }
-	const minHeight = thumb.height / devicePixelRatio + 20;
-	const thumbWidth = thumb.width / devicePixelRatio;
-	let   width = Math.sqrt(length * 225 + (thumb.height / devicePixelRatio + 20) * (thumb.width / devicePixelRatio + 20));
+	const thumbWidth = thumb.width / devicePixelRatio, thumbHeight = thumb.height / devicePixelRatio;
+	let width = Math.sqrt(length * 225 + (thumb.height / devicePixelRatio + 20) * (thumb.width / devicePixelRatio + 20));
 	if (thumbWidth && width - thumbWidth < 100) { width = thumbWidth + 24; }
 	else if (thumbWidth && width - thumbWidth < 180) { width = thumbWidth + 200; }
 	else if (width < 150) { width = 150; }
 	return (
 		`<style>
-			#content { width: ${ width << 0 }px; min-height: ${ minHeight << 0 }px; }
+			#content { width: ${ width << 0 }px; min-height: ${ thumbHeight + 20 }px; }
 			article>:first-child { margin-top: 0; }
 			article>:last-child { margin-bottom: 0; }
 			.thumb {
@@ -86,13 +85,13 @@ function article({ html, thumb = { width: 0, height: 0, }, lang = '', }) {
 		</style>`
 		+ (thumb.source ? `<img
 			src="${ thumb.source }" class="thumb" alt="loading..."
-			style="width: ${ thumbWidth }px; height: ${ thumb.height / devicePixelRatio }px;"
+			style="width: ${ thumbWidth }px; height: ${ thumbHeight }px;"
 		>` : '')
 		+ `<article lang="${ lang.replace(/[^\w-]/g, '') || navigator.language }">${ text }</article>`
 	);
 }
 
-function image({ src, img, title, description, base, }) { return (
+function image({ src, img, title, description, base, dpi, }) { return (
 	(base ? `<base href=${ attr(base) }>`: '')
 	+ `<style>
 		#content { padding: 4px; text-align: center; }
@@ -101,18 +100,20 @@ function image({ src, img, title, description, base, }) { return (
 	+ (title ? `<div id="title">${ sanatize(title)[0] }</div>` : '')
 	+ (img || `<img src=${ attr(src) } alt=${ attr(title) }>`)
 	+ (description ? `<div id="description">${ sanatize(description)[0] }</div>` : '')
-	+ `<script>(`+ (() => {
+	+ `<script>(`+ ((dpi) => {
 		document.body.classList.add('loading');
 		const img = document.querySelector('#content>img');
 		img.addEventListener('load', async () => {
 			document.body.classList.remove('loading');
-			const width = img.naturalWidth  / devicePixelRatio;
+			const src = img.currentSrc;
+			typeof dpi !== 'number' && (dpi = +((/[-@_](\d)x\.\w{1,5}$/).exec(src) || [ 0, 1, ])[1] > devicePixelRatio ? 1 : devicePixelRatio);
+			const width = img.naturalWidth / (devicePixelRatio / dpi);
 			img.style.width = width  +'px';
 			document.querySelector('#content').style.width = width + 8 +'px';
 			(await window.resize());
 			setTimeout(() => window.resize(), 10);
 		});
-	}) +`)();</script>`
+	}) +`)(${ dpi });</script>`
 ); }
 
 

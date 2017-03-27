@@ -1,6 +1,6 @@
-(function(global) { 'use strict'; prepare() && define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+(function(global) { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/network': { HttpRequest, },
-	'node_modules/readability/Readability': Readability,
+	'shim!node_modules/readability/Readability': Readability,
 	'node_modules/regexpx/': RegExpX,
 	'node_modules/web-ext-utils/loader/': { parseMatchPatterns, },
 	'node_modules/web-ext-utils/utils/': { reportError, },
@@ -82,7 +82,4 @@ function makeURI(url) { return {
 	pathBase: url.protocol + "//" + url.host + url.pathname.substr(0, url.pathname.lastIndexOf("/") + 1),
 }; }
 
-}); function prepare() {
-	global.require.config({ shim: { 'node_modules/readability/Readability': { exports: 'Readability', }, }, });
-	return true;
-} })(this);
+}); })(this);
