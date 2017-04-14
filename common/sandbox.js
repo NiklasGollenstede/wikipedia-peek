@@ -2,7 +2,8 @@
 	'node_modules/es6lib/port': Port,
 	'node_modules/web-ext-utils/browser/': { rootUrl, inContent, },
 	'node_modules/web-ext-utils/browser/version': { gecko, },
-}) => {
+	require,
+}) => { /* global URL, Blob, btoa, */
 
 /**
  * Creates a sandboxed iframe and returns a es6lib/Port connected to it.
@@ -21,7 +22,7 @@ async function makeSandbox(init, {
 	strict = true,
 	srcUrl = rootUrl +'eval',
 	sandbox = 'allow-scripts',
-	host = document.head,
+	host = global.document.head,
 } = { }) {
 
 	const script = `${ strict ? "'use strict';" : '' } \0
@@ -34,7 +35,7 @@ async function makeSandbox(init, {
 		})((${ require.cache['node_modules/es6lib/port'].factory })());
 	//# sourceURL=${ srcUrl }\n`.replace(/ \0[\r\n]\s*/g, ' ');
 
-	if (gecko && !inContent) { // Firefox doesn't allow inline scripts in the extension pages,
+	if (!inContent) { // Firefox doesn't allow inline scripts in the extension pages,
 		// so the code inside the script itself is allowed by 'sha256-QMSw9XSc08mdsgM/uQhEe2bXMSqOw4JvoBdpHZG21ps=', the eval() needs 'unsafe-eval'
 		html += `<script data-code="${ btoa(script) }">eval(atob(document.currentScript.dataset.code))</script></html>`;
 	} else {
@@ -42,7 +43,7 @@ async function makeSandbox(init, {
 	}
 
 	const url = URL.createObjectURL(new Blob([ html, ], { type: 'text/html', }));
-	const frame = document.createElement('iframe'); {
+	const frame = host.ownerDocument.createElement('iframe'); {
 		frame.sandbox = sandbox;
 		frame.src = url;
 		frame.style.display = 'none';
@@ -57,17 +58,17 @@ async function makeSandbox(init, {
 		async function onload() {
 			frame.onload = frame.onerror = null;
 
-			const { port1, port2, } = new MessageChannel;
+			const { port1, port2, } = new host.ownerDocument.defaultView.MessageChannel;
 			frame.contentWindow.postMessage(null, '*', [ port1, ]);
 			// nobody but the frame content itself can listen to this
 			const port = new Port(port2, Port.MessagePort);
 
 			return new Promise((resolve, reject) => {
-				const cancel = setTimeout(() => reject(new Error('Failed to create Sandbox')), inContent ? (gecko ? 250 : 125) : 1000);
+				let done = false; waitIdleTime(inContent ? (gecko ? 250 : 125) : 1000).then(() => !done && reject(new Error('Failed to create Sandbox')));
 				port.addHandler(function loaded() {
 					port.removeHandler('loaded');
-					clearTimeout(cancel);
 					resolve(Object.assign(port, { frame, }));
+					done = true;
 				});
 			});
 		}
@@ -75,5 +76,21 @@ async function makeSandbox(init, {
 }
 
 return makeSandbox;
+
+/* global performance, requestIdleCallback, setTimeout, */
+function waitIdleTime(time) { return new Promise(done => {
+	const start = performance.now();
+	if (typeof requestIdleCallback !== 'function') {
+		return void setTimeout(function loop() {
+			if ((time -= 5) <= 0) { done(performance.now() - start); }
+			else { setTimeout(loop, 5); }
+		}, 5);
+	}
+	requestIdleCallback(function loop(idle) {
+		const left = Math.max(5, idle.timeRemaining()); time -= left;
+		if (time <= 0) { done(performance.now() - start); }
+		else { setTimeout(() => requestIdleCallback(loop), left + 1); }
+	});
+}); }
 
 }); })(this);

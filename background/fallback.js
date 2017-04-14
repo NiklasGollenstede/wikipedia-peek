@@ -6,9 +6,17 @@
 	'common/options': options,
 	'common/sandbox': makeSandbox,
 	'content/panel.js': js,
-	'content/panel.html': html,
+	'xhr!content/panel.css': css,
+	'xhr!content/panel.html': html,
 	require,
 }) => {
+
+css += `
+	body { max-height: 100vh; overflow-y: auto; }
+	#border { display: none !important; }
+	#background { top: 0px; right: 0; left: 0px; bottom: 0; }
+`;
+html = html.replace(/\${\s*css\s*}/, css);
 
 const offsetTop = options.advanced.children.fallback.children.offsetTop.children;
 const closeOnBlur = options.advanced.children.fallback.children.closeOnBlur;
@@ -21,34 +29,25 @@ function getStyle() { return {
 	transparency: style.transparency.value,
 }; }
 
-let view = null, getView = null;
-
-Views.setHandler(function fallback(view) {
-	getView ? getView(view) : view.close();
-});
+let tab = null;
 
 const methods = {
-	async show(preview, anchor) { try {
+	async show(content, anchor) { try {
 		// TODO: the tab based fallback mode has one serious conceptional flaw: it is virtually impossible to actually click the original link. And it is too slow (on a phone)
-		const tab = Windows ? (await Windows.create({
-			type: 'popup', url: '/view.html#fallback',
-			width: 50, height: 50,
-		})).tabs[0] : (await Tabs.create({
-			url: '/view.html#fallback',
-			[!gecko ? 'openerTabId' : 'index']: this.tab.id,
-			index: (await Tabs.get(this.tab.id)).index,
+
+		tab = (await Views.openView('fallback', 'popup', {
+			width: 50, height: 50, focused: true,
+			openerTabId: this.tab.id,
 		}));
-		view = (await new Promise(got => (getView = got)));
-		view.tabId = tab.id;
+		const { view, } = tab;
 		if (!view.document.hasFocus()) { return void methods.hide(); }
 
-		closeOnBlur.value && view.addEventListener('blur', async () => view && (!view.port || !(await view.port.request('isHovered'))) && methods.hide());
-		view.addEventListener('unload', () => { view && view.port && view.port.destroy(); view = view.port = null; });
+		closeOnBlur.value && view.addEventListener('blur', async () => tab && (!tab.port || !(await tab.port.request('isHovered'))) && methods.hide());
+		view.addEventListener('unload', () => { view && tab.port && tab.port.destroy(); tab = tab.port = null; });
 		view.document.title = `Fallback - Wikipedia Peek`;
 
-		const port = view.port = (await makeSandbox(js, {
-			html: html,
-			srcUrl: require.toUrl('content/panel.js'),
+		const port = tab.port = (await makeSandbox(js, {
+			html, srcUrl: require.toUrl('content/panel.js'),
 			host: view.document.body, // needs to reside in the view, otherwise firefox won't give the elements any dimensions
 		}));
 		Object.assign(port.frame.style, {
@@ -59,10 +58,10 @@ const methods = {
 		Windows && port.addHandler(setSize);
 		!Windows && closeOnBlur.value && port.request('await', 'click').then(methods.hide).catch(() => 0);
 
-		(await port.request('setStyle', getStyle(), true));
+		(await port.request('setStyle', getStyle()));
 		const parent  = Windows && (await Windows.get((await Tabs.get(this.tab.id)).windowId));
-		const content = (await port.request('show', preview, parent ? parent.width - 20 : 999999));
-		Windows && (await setSize(content));
+		const size = (await port.request('setState', 'showing', { content, maxWidth: parent ? parent.width - 20 : 999999, }));
+		Windows && (await setSize(size));
 		if (!view.document.hasFocus()) { return void methods.hide(); }
 
 		async function setSize(content) {
@@ -85,11 +84,11 @@ const methods = {
 	} catch (error) { reportError('Fallback mode failed', error); methods.hide(); throw error; } },
 
 	hide() {
-		view && Tabs.remove(view.tabId);
-		view = null;
+		tab && Tabs.remove(tab.tabId);
+		tab = null;
 	},
 
-	isHovered() { return view && view.port && view.port.request('isHovered'); },
+	isHovered() { return tab && tab.port && tab.port.request('isHovered'); },
 };
 
 return methods;

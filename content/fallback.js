@@ -24,6 +24,11 @@ const Overlay = {
 		target = element; state = 'loading';
 		// no-op
 	},
+	async failed(element) {
+		if (target === element && state !== 'hidden') { return; }
+		target = element; state = 'failed';
+		// no-op
+	},
 	async show(element, preview) {
 		if (target === element && state === 'showing') { return; }
 		target = element; state = 'showing';

@@ -83,12 +83,12 @@ async function showForElement(link, wait) {
 		if (canceled) { return; }
 
 		loading = null;
-		if (!content) { overlay.cancel(link); return; }
+		if (!content) { overlay.failed(link); return; }
 		(await overlay.show(link, content));
 
 	} catch (error) {
 		console.error(error);
-		overlay && overlay.cancel(link);
+		overlay && overlay.failed(link);
 		request('reportError', `Failed to show preview`, (error && error.message));
 	} finally {
 		link.removeEventListener('mouseleave', cancel);

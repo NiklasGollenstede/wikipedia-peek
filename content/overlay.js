@@ -2,7 +2,8 @@
 	'node_modules/web-ext-utils/loader/content': { onUnload, },
 	'common/options': options,
 	'common/sandbox': makeSandbox,
-	'./panel.html': html,
+	'xhr!./panel.css': css,
+	'xhr!./panel.html': html,
 	'./panel.js': js,
 	'./': { request, sleep, },
 	require,
@@ -12,7 +13,8 @@ const HOVER_HIDE_DELAY = 230; // ms
 const style = options.style.children;
 let target = null, state = 'hidden';
 const port = (await makeSandbox(js, {
-	html, srcUrl: require.toUrl('./panel.js'),
+	html: html.replace(/\${\s*css\s*}/, css),
+	srcUrl: require.toUrl('./panel.js'),
 	host: document.scrollingElement,
 }).catch(error => console.error(error)));
 if (!port) { return false; } // can't return null
@@ -47,74 +49,66 @@ function getHostPosition() {
 	: document.scrollingElement.getBoundingClientRect();
 }
 
-const handlers = {
-	click(event) {
-		Overlay.hide();
-	},
+const listener = {
 	checking: false,
-	async mousemove(event) {
-		if (handlers.checking || Overlay.target.contains(event.target) || event.target === frame) { return; }
-		handlers.checking = true; try { for (let i = 0; i < 8; ++i) {
+	async handleEvent(event) {
+		if (event.type === 'click') { return void Overlay.hide(); }
+		// else mousemove
+		if (listener.checking || target.contains(event.target) || event.target === frame) { return; }
+		listener.checking = true; try { for (let i = 0; i < 8; ++i) {
 			(await sleep(HOVER_HIDE_DELAY / 8));
 			// moving the cursor over a window on top of the page doesn't remove :hover in chrome
-			if (!Overlay.target || Overlay.target.matches(':hover') || frame.matches(':hover')) { return; }
-		} } finally { handlers.checking = false; }
-		handlers.detatch();
+			if (!target || target.matches(':hover') || frame.matches(':hover')) { return; }
+		} } finally { listener.checking = false; }
+		listener.detatch();
 		Overlay.hide();
 	},
 	attach() {
-		setTimeout(() => document.addEventListener('click', handlers.click), 500);
-		document.addEventListener('mousemove', handlers.mousemove);
+		setTimeout(() => document.addEventListener('click', listener), 500);
+		document.addEventListener('mousemove', listener);
 	},
 	detatch() {
-		document.removeEventListener('click', handlers.click);
-		document.removeEventListener('mousemove', handlers.mousemove);
+		document.removeEventListener('click', listener);
+		document.removeEventListener('mousemove', listener);
 	},
 };
 
+async function setState(newState, newTarget, arg) {
+	if (newState === state && target === newTarget) { return; }
+	state = newState; target = newTarget;
+
+	frame.style.pointerEvents = state === 'showing' ? '' : 'none';
+	frame.style.display = state === 'hidden' ? 'none' : '';
+	frame.style.width = frame.style.height = '0';
+	state === 'showing' || state === 'failed' ? listener.attach() : listener.detatch();
+
+	const size = (await port.request('setState', state, arg));
+	if (state === 'hidden') { frame.style.top = frame.style.left = '0'; return; }
+
+	const position = target && target.getBoundingClientRect(), host = getHostPosition();
+	frame.style.top   = (-host.top  + position.bottom + (state === 'showing' ? 5 : -position.height/2 - size.height/2)) +'px';
+	frame.style.left  = (-host.left + position.left   + position.width/2) +'px';
+	setSize(size);
+}
+
 const Overlay = {
 	get target() { return target; },
-	get state() { return state; }, // one of [ hidden, loading, showing, ]
+	get state() { return state; }, // one of [ hidden, loading, failed, showing, ]
 	async loading(element) {
-		if (target === element && state !== 'hidden') { return; }
-		target = element; state = 'loading';
-		frame.style.pointerEvents = 'none';
-		frame.style.display = '';
-		frame.style.width = frame.style.height = '0';
-		const size = (await port.request('loading'));
-		const position = element.getBoundingClientRect();
-		const host = getHostPosition();
-		frame.style.left  = (-host.left + position.left + position.width/2) +'px';
-		frame.style.top   = (-host.top  + position.top  + position.height/2 - size.width/2) +'px';
-		setSize(size);
+		return void (await setState('loading', element, null));
 	},
-	async show(element, preview) {
-		if (target === element && state === 'showing') { return; }
-		target = element; state = 'showing';
-		element.title && (element.titleAttr = element.title) && (element.title = '');
-		const position = element.getBoundingClientRect();
-		const host = getHostPosition();
-		frame.style.top  = (-host.top  + position.bottom + 5) +'px';
-		frame.style.left = (-host.left + position.left   + position.width/2) +'px';
-		frame.style.pointerEvents = '';
-		frame.style.display = '';
-
-		frame.style.width = frame.style.height = '0';
-		const size = (await port.request('show', preview, document.documentElement.clientWidth - 20));
-		setSize(size);
-		handlers.attach();
+	async failed(element) {
+		return void (await setState('failed', element, null));
 	},
-	cancel(element) {
+	async show(element, content) {
+		return void (await setState('showing', element, { content, maxWidth: document.documentElement.clientWidth - 20, }));
+	},
+	async cancel(element) {
 		if (state !== 'loading' || !element || element !== target) { return; }
-		Overlay.hide();
+		return void (await setState('hidden', null, null));
 	},
-	hide() {
-		if (state === 'hidden') { return; } state = 'hidden';
-		frame.style.display = 'none';
-		target.titleAttr && (target.title = target.titleAttr);
-		delete target.titleAttr;
-		port.post('hide');
-		handlers.detatch();
+	async hide() {
+		return void (await setState('hidden', null, null));
 	},
 };
 

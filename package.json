@@ -19,9 +19,9 @@
 
 	"dependencies": {
 		"readability": "mozilla/readability#1369f92",
-		"es6lib": "NiklasGollenstede/es6lib#b0128a6",
+		"es6lib": "NiklasGollenstede/es6lib#f68b792",
 		"regexpx": "NiklasGollenstede/regexpx#eebed29",
-		"web-ext-utils": "NiklasGollenstede/web-ext-utils#5d11d12",
+		"web-ext-utils": "NiklasGollenstede/web-ext-utils#7b5674d",
 		"web-ext-build": "NiklasGollenstede/web-ext-build#cafdc99"
 	},
 	"devDependencies": {

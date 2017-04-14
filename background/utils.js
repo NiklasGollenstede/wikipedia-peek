@@ -70,14 +70,11 @@ function article({ html, thumb = { width: 0, height: 0, }, lang = '', }) {
 	return (
 		`<style>
 			#content { width: ${ width << 0 }px; min-height: ${ thumbHeight + 20 }px; }
+			article { padding: 1px 2px 1px 6px; }
 			article>:first-child { margin-top: 0; }
 			article>:last-child { margin-bottom: 0; }
-			.thumb {
-				float: right;
-				margin: 3px 3px 3px 10px;
-			}`
-			+(width - thumb.width < 300 ? `
-			article${ width > 300 ? '>:first-child' : '' } {
+			.thumb { float: right; margin: 3px 3px 3px 10px; }
+			`+(width - thumb.width < 300 ? `article${ width > 300 ? '>:first-child' : '' } {
 				hyphens: auto;
 				-ms-hyphens: auto;
 				-webkit-hyphens: auto;
@@ -94,7 +91,7 @@ function article({ html, thumb = { width: 0, height: 0, }, lang = '', }) {
 function image({ src, img, title, description, base, dpi, }) { return (
 	(base ? `<base href=${ attr(base) }>`: '')
 	+ `<style>
-		#content { padding: 4px; text-align: center; }
+		#content { text-align: center; }
 		#title { font-variant: small-caps; }
 	</style>`
 	+ (title ? `<div id="title">${ sanatize(title)[0] }</div>` : '')
