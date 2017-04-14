@@ -11,13 +11,13 @@ body {
 	font-family: arial,sans-serif;
 }
 
-#background { /* background with custom transparency */
-	position: absolute; z-index: -2;
+#content::before { /* background with custom transparency */
+	content: ''; position: absolute; z-index: -2;
 	top: 1px; left: 1px; bottom: 1px; right: 1px;
 	background-color: white;
 }
-#border { /* border with custom transparency */
-	position: absolute; z-index: -1;
+#content::after { /* border with custom transparency */
+	content: ''; position: absolute; z-index: -1;
 	top: 0; left: 0; bottom: 0.5px; right: 0.5px; /* with dpi !== 1 and bottom/right === 0, the borders tend to be cut of for some sizes */
 	border: 1px solid black;
 }
@@ -53,14 +53,11 @@ body {
 .failed #fail-cross {
 	display: block;
 }
-.showing #content, .showing #background, .showing #border {
+.showing #content {
 	display: block;
 }
 
 /* load spinners */
-.load-spinner {
-	display: none;
-}
 .load-spinner {
 	font-size: 40px; /* outer diameter */
 	width: 1.2em; height: 1.2em; /* give the parent the proper size */

@@ -13,21 +13,26 @@
 
 css += `
 	body { max-height: 100vh; overflow-y: auto; }
-	#border { display: none !important; }
-	#background { top: 0px; right: 0; left: 0px; bottom: 0; }
+	#content::after { display: none; } /* background */
+	#content::before { top: 0px; right: 0; left: 0px; bottom: 0; } /* background */
 `;
 html = html.replace(/\${\s*css\s*}/, css);
 
 const offsetTop = options.advanced.children.fallback.children.offsetTop.children;
 const closeOnBlur = options.advanced.children.fallback.children.closeOnBlur;
 const style = options.style.children;
-function getStyle() { return {
-	color: style.color.value,
-	fontFamily: style.fontFamily.value,
-	fontSize: style.fontSize.value,
-	backgroundColor: style.backgroundColor.value,
-	transparency: style.transparency.value,
-}; }
+function getStyle() { return `
+#content::before, #border::after /* background, border */
+{ opacity: ${ (1 - style.transparency.value / 100) }; }
+#content::before /* background */
+{ background-color: ${ style.backgroundColor.value }; }
+#content::after /* border */
+{ border-color: ${ style.color.value }; }
+#content {
+	color: ${ style.color.value };
+	font-family: ${ style.fontFamily.value };
+	font-size: ${ style.fontSize.value }%;
+}`; }
 
 let tab = null;
 

@@ -34,13 +34,18 @@ function setSize({ scrollWidth: width, height, }) {
 	}
 }
 
-function getStyle() { return {
-	color: style.color.value,
-	fontFamily: style.fontFamily.value,
-	fontSize: style.fontSize.value,
-	backgroundColor: style.backgroundColor.value,
-	transparency: style.transparency.value,
-}; }
+function getStyle() { return `
+#content::before, #border::after /* background, border */
+{ opacity: ${ (1 - style.transparency.value / 100) }; }
+#content::before /* background */
+{ background-color: ${ style.backgroundColor.value }; }
+#content::after /* border */
+{ border-color: ${ style.color.value }; }
+#content {
+	color: ${ style.color.value };
+	font-family: ${ style.fontFamily.value };
+	font-size: ${ style.fontSize.value }%;
+}`; }
 
 function getHostPosition() {
 	return document.scrollingElement === document.body

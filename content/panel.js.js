@@ -1,16 +1,10 @@
 /*eslint-disable strict*/ void define(() => port => { 'use strict'; /* global window, document, */ // license: MPL-2.0
 
+const style = document.head.appendChild(document.createElement('style'));
+
 port.addHandlers({
-	setStyle(style) {
-		const content = document.querySelector('#content').style;
-		const background = document.querySelector('#background').style;
-		const border = document.querySelector('#border').style;
-		content.color = style.color;
-		content.fontFamily = style.fontFamily;
-		content.fontSize = style.fontSize +'%';
-		background.backgroundColor = style.backgroundColor;
-		border.borderColor = style.color;
-		background.opacity = border.opacity = (1 - style.transparency / 100);
+	setStyle(css) {
+		style.textContent = css;
 		return size();
 	},
 	setState(state, arg) {
