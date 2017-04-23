@@ -69,6 +69,7 @@ const Self = {
 	getApiPath, getArticleName,
 
 	async load(url) {
+		// if (Math.random() > .5) { return ''; } // TODO: remove
 		const api = (await Self.getApiPath(url));
 		const name = (await Self.getArticleName(url));
 		const lang = (/:\/\/([^.]*)/).exec(url)[1];

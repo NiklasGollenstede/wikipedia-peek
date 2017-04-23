@@ -8,7 +8,7 @@ body {
 	padding: 0;
 	border: none;
 	overflow: hidden;
-	font-family: arial,sans-serif;
+	font-family: arial, sans-serif;
 }
 
 #content::before { /* background with custom transparency */
@@ -30,16 +30,19 @@ body {
 
 #fail-cross {
 	font-size: 40px;
-	width: 1em; height: 1em;
+	color: rgba(127, 127, 127, 0.6);
+	width: 1.2em; height: 1.2em;
 }
 #fail-cross::before, #fail-cross::after {
 	content: ''; position: absolute;
-	top: 0.45em; height: 0.1em;
-	left: 0.1em; width: 0.8em;
-	background: #7f7f7f;
+	top: 0.55em; height: 0.1em;
+	left: 0.2em; width: 0.8em;
+	background: currentColor;
 	transform: rotate(45deg);
 }
 #fail-cross::after {
+	background: transparent;
+	background-image: linear-gradient(to right, currentColor 0.35em, transparent 0.36em, transparent 0.44em, currentColor 0.45em);
 	transform: rotate(-45deg);
 }
 

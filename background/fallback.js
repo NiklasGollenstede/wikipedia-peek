@@ -6,8 +6,8 @@
 	'common/options': options,
 	'common/sandbox': makeSandbox,
 	'content/panel.js': js,
-	'xhr!content/panel.css': css,
-	'xhr!content/panel.html': html,
+	'fetch!content/panel.css': css,
+	'fetch!content/panel.html': html,
 	require,
 }) => {
 
@@ -38,8 +38,6 @@ let tab = null;
 
 const methods = {
 	async show(content, anchor) { try {
-		// TODO: the tab based fallback mode has one serious conceptional flaw: it is virtually impossible to actually click the original link. And it is too slow (on a phone)
-
 		tab = (await Views.openView('fallback', 'popup', {
 			width: 50, height: 50, focused: true,
 			openerTabId: this.tab.id,

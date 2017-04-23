@@ -23,6 +23,9 @@ port.addHandlers({
 			case 'hidden': {
 				document.querySelector('#content').innerHTML = '';
 			} break;
+			case 'failed': {
+				document.querySelector('#fail-cross').style.visibility = arg ? 'visible' : 'hidden';
+			} break;
 		}
 		return size();
 	},

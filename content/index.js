@@ -45,7 +45,7 @@ const preventClick = (timeout => () => {
  * @param  {Element}  link  The element that the user is currently targeting by hovering it or having tapped it.
  * @param  {boolean}  wait  Whether to wait showDelay before taking further steps.
  */
-async function showForElement(link, wait) {
+async function showForElement(link, active) {
 	loading = link; let canceled = false; const cancel = _ => {
 		debug && console.debug('cancel for', _, link);
 		loading = null; canceled = true;
@@ -58,7 +58,7 @@ async function showForElement(link, wait) {
 		document.addEventListener('click', cancel);
 
 		// on hover, wait a bit
-		wait && (await sleep(showDelay));
+		!active && (await sleep(showDelay));
 		if (canceled) { return; }
 
 		debug && console.debug('loading for', link);
@@ -83,12 +83,12 @@ async function showForElement(link, wait) {
 		if (canceled) { return; }
 
 		loading = null;
-		if (!content) { overlay.failed(link); return; }
+		if (!content) { overlay.failed(link, active); return; }
 		(await overlay.show(link, content));
 
 	} catch (error) {
 		console.error(error);
-		overlay && overlay.failed(link);
+		overlay && overlay.failed(link, active);
 		request('reportError', `Failed to show preview`, (error && error.message));
 	} finally {
 		link.removeEventListener('mouseleave', cancel);
@@ -125,7 +125,7 @@ let lastHover; function onMouseMove({ target: link, }) {
 	if (lastHover === link) { return; }
 	lastHover = link;
 	if (shouldIgnore(link)) { return; }
-	showForElement(link, true);
+	showForElement(link, false);
 }
 function onTouchEnd(event) {
 	if (
@@ -136,13 +136,13 @@ function onTouchEnd(event) {
 	const link = event.target.closest('a'); if (shouldIgnore(link)) { return; }
 	blockEvent(event);
 	preventClick();
-	showForElement(link, false);
+	showForElement(link, true);
 }
 function onMouseDown(event) {
 	if (event.button || !inTouchMode()) { return; }
 	const link = event.target.closest('a'); if (shouldIgnore(link)) { return; }
 	preventClick();
-	showForElement(link, false);
+	showForElement(link, true);
 }
 
 {

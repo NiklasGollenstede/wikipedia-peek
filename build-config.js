@@ -10,8 +10,7 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 
 	manifestJson.content_security_policy = `script-src 'self' 'unsafe-eval' 'sha256-QMSw9XSc08mdsgM/uQhEe2bXMSqOw4JvoBdpHZG21ps='; object-src 'self';`; // see common/sandbox.js
 
-	manifestJson.page_action && (manifestJson.page_action.default_title = `Open ${ manifestJson.name } options`);
-	manifestJson.browser_action && (manifestJson.browser_action.default_title = `Toggle ${ manifestJson.name } on the current page.\nVisit the options to make permanent changes`);
+	manifestJson.browser_action && (manifestJson.browser_action.default_title = `Toggle ${ manifestJson.name }`);
 
 	files.node_modules = {
 		es6lib: [
@@ -46,7 +45,6 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 					'index.js',
 					'index.css',
 					'inline.css',
-					'inline.html',
 					'inline.js',
 				],
 			},
@@ -58,7 +56,6 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 				'files.js',
 				'index.js',
 				'inject.js',
-				//	'run-in-tab.js',
 				'semver.js',
 			],
 		},

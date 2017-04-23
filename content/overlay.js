@@ -2,8 +2,8 @@
 	'node_modules/web-ext-utils/loader/content': { onUnload, },
 	'common/options': options,
 	'common/sandbox': makeSandbox,
-	'xhr!./panel.css': css,
-	'xhr!./panel.html': html,
+	'fetch!./panel.css': css,
+	'fetch!./panel.html': html,
 	'./panel.js': js,
 	'./': { request, sleep, },
 	require,
@@ -34,7 +34,9 @@ function setSize({ scrollWidth: width, height, }) {
 	}
 }
 
-function getStyle() { return `
+function getStyle() { return (
+	style.showFail.value === 'auto' ? '' : '#fail-cross { visibility: '+ (style.showFail.value ? 'visible' : 'hidden') +' !important; }'
+) +`
 #content::before, #border::after /* background, border */
 { opacity: ${ (1 - style.transparency.value / 100) }; }
 #content::before /* background */
@@ -102,8 +104,8 @@ const Overlay = {
 	async loading(element) {
 		return void (await setState('loading', element, null));
 	},
-	async failed(element) {
-		return void (await setState('failed', element, null));
+	async failed(element, visible) {
+		return void (await setState('failed', element, visible));
 	},
 	async show(element, content) {
 		return void (await setState('showing', element, { content, maxWidth: document.documentElement.clientWidth - 20, }));

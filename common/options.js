@@ -85,6 +85,17 @@ const model = {
 				restrict: { type: 'number', from: 20, to: 300, },
 				input: { type: 'integer', suffix: '% relative to default', },
 			},
+			showFail: {
+				title: 'Show Failure',
+				description: `Display a cross symbol over links whose previews failed to load`,
+				expanded: false,
+				default: 'auto',
+				input: { type: 'menulist', options: [
+					{ label: 'Never',       value: false, },
+					{ label: 'When tapped', value: 'auto', },
+					{ label: 'Always',      value: true, },
+				], },
+			},
 		},
 	},
 	advanced: {

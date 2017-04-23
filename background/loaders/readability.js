@@ -60,7 +60,7 @@ const Self = {
 		if (!parsed || !parsed.excerpt) { return null; }
 
 		const title = parsed.title.replace(lastSegment, ''); // .split(/ (?:-|–|—|\||::) /)[0]; // TODO: only remove the last compartment? (done)
-		let text = parsed.excerpt.replace(/(?: \(\) )/, '');
+		let text = parsed.excerpt.replace(/(?: \(\) )/, ''); // TODO: this should be escaped
 
 		const titleAt = text.search(RegExpX('i')`${ title }`);
 		if (titleAt >= 0) {

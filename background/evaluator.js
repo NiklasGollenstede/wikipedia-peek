@@ -37,10 +37,11 @@ class Evaluator {
 async function EvaluatorInit() {
 	Self.set(this, (await makeSandbox(port => {
 		const FunctionCtor = (x=>x).constructor;
+		const globEval = eval;
 		const functions = { };
 		port.addHandlers({
 			eval(code) {
-				return eval(code);
+				return globEval(code);
 			},
 			create(id, ...args) {
 				const func = functions[id] = new FunctionCtor(...args);
