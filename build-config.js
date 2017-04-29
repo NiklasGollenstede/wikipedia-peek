@@ -2,6 +2,7 @@
 module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 
 	manifestJson.permissions.push(
+		'contentEval',
 		'notifications',
 		'tabs',
 		'webNavigation',

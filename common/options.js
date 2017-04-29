@@ -7,11 +7,21 @@
 
 const isBeta = (/^\d+\.\d+.\d+(?!$)/).test((global.browser || global.chrome).runtime.getManifest().version); // version doesn't end after the 3rd number ==> bata channel
 
+const Fix = props => Object.assign({
+	expanded: false,
+	restrict: 'inherit',
+	input: [
+		{ type: 'boolean', prefix: 'Active  ', style: { display: 'block', marginBottom: '3px', }, default: true, },
+		{ type: 'string',  prefix: 'Matches',  style: { display: 'block', marginBottom: '3px', }, default: 'https://example.com/*', },
+		{ type: 'code',    prefix: 'Code   ',  default: `// JavaScript code here`, },
+	],
+}, props);
+
 const model = {
 	include: {
 		title: 'Included Sites',
 		description: String.raw`
-			This list controls which sites ${ manifest.name } displays previrews <i>on</i> by default, without clicking it's icon.<br>
+			This list controls which sites ${ manifest.name } displays previews <i>on</i> by default, without clicking it's icon.<br>
 			Specify as <a href="https://developer.mozilla.org/Add-ons/WebExtensions/Match_patterns">Match Patterns</a>
 			or <a href="https://regex101.com/">Regular Expressions</a> (advanced, must start with <code>^</code> and end with <code>$</code>).<br>
 			Examples:<ul>
@@ -26,14 +36,14 @@ const model = {
 		maxLength: Infinity,
 		default: [ 'https://*.wikipedia.org/*', 'https://*.mediawiki.org/*', 'https://*.wikia.com/*', '<all_urls>', ],
 		restrict: { match: {
-			exp: (/^(?:\^.*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/([^\ ]*)))$/i),
+			exp: (/^(?:\^\S*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/(\S*)))$/i),
 			message: `Each pattern must be of the form <scheme>://<host>/<path> or be framed with '^' and '$'`,
 		}, },
 		input: { type: 'string', default: 'https://*.wikipedia.org/*', },
 		children: {
 			incognito: {
 				default: !gecko, hidden: !gecko, // this is only relevant in Firefox, Chrome has a separate check box for this
-				input: { type: 'bool', suffix: `include Private Browsing windows`, },
+				input: { type: 'boolean', suffix: `include Private Browsing windows`, },
 			},
 			exclude: {
 				title: 'Excluded Sites',
@@ -45,24 +55,24 @@ const model = {
 		},
 	},
 	style: {
-		title: `Preview Style`,
+		title: 'Preview Style',
 		expanded: false,
 		default: true,
 		children: {
 			color: {
-				title: `Text color`,
+				title: 'Text color',
 				default: '#000000',
 				restrict: { match: (/^#[0-9a-fA-F]{6}$/), },
 				input: { type: 'color', },
 			},
 			backgroundColor: {
-				title: `Background color`,
+				title: 'Background color',
 				default: '#ffffff',
 				restrict: { match: (/^#[0-9a-fA-F]{6}$/), },
 				input: { type: 'color', },
 			},
 			fontFamily: {
-				title: `Font`,
+				title: 'Font',
 				default: 'Arial, Sans-Serif',
 				restrict: { match: { exp: (/^\s*(?:".+"|[\w-]+)(\s*,\s*(?:".+"|[\w-]+))*\s*$/), message: `This must be a valid CSS font family definition`, }, },
 				input: { type: 'string', },
@@ -99,7 +109,7 @@ const model = {
 		},
 	},
 	advanced: {
-		title: `Advanced`,
+		title: 'Advanced',
 		expanded: false,
 		default: true,
 		children: {
@@ -107,7 +117,7 @@ const model = {
 				title: 'Thumbnail Images',
 				expanded: false,
 				default: true,
-				input: { type: 'bool', suffix: `load thumbnails`, },
+				input: { type: 'boolean', suffix: `load thumbnails`, },
 				children: {
 					size: {
 						default: 150,
@@ -159,22 +169,22 @@ const model = {
 				input: { type: 'integer', suffix: 'milliseconds', },
 			},
 			fallback: {
-				title: 'Popup Fallback Mode',
+				title: 'Pop-up Fallback Mode',
 				description: `The Content Security Policy of some websites prevents the insertion of the panels.
-				As a fallback, the previews on these sites can be opened in separate popup windows.`,
+				As a fallback, the previews on these sites can be opened in separate pop-up windows.`,
 				expanded: false,
 				default: !fennec,
-				input: { type: 'checkbox', suffix: 'enable the fallback maode', },
+				input: { type: 'checkbox', suffix: 'enable the fallback mode', },
 				children: {
 					always: {
 						description: ` `,
 						default: false,
 						input: { type: 'checkbox', suffix: `<b>Always</b> use the fallback mode and never display inline panels.
 						<br>With the inline panels the pages are theoretically able to tell when and where such a panel is displayed, but can't read its content.
-						If you see this as a privacy issue, check this box and all previews will open in undetectable popups.`, },
+						If you see this as a privacy issue, check this box and all previews will open in undetectable pop-ups.`, },
 					},
 					offsetTop: {
-						description: `The positioning of the popups depends on the width of the window frames, so`,
+						description: `The positioning of the pop-ups depends on the width of the window frames, so`,
 						restrict: { type: 'number', from: 0, to: 250, },
 						default: true,
 						children: {
@@ -200,7 +210,7 @@ const model = {
 			devicePixelRatio: {
 				title: 'devicePixelRatio',
 				description: `Nowadays many devices have high resolution displays.
-				To load images in a quality fitting your display and to position the popup windows correctly,
+				To load images in a quality fitting your display and to position the pop-up windows correctly,
 				this extension needs to know that scale factor.<br>
 				It should automatically adjust itself and unless you have zoomed this page, the value should be set to <code>${ devicePixelRatio }</code>.`, // TODO:  this obviously doesn't work anymore ...
 				expanded: false,
@@ -217,6 +227,30 @@ const model = {
 		},
 	},
 	loaders: undefined,
+	fixes: {
+		title: 'Page compatibility',
+		expanded: false,
+		default: [ [ ], ],
+		restrict: [
+			{ type: 'boolean', },
+			{ type: 'string', match: {
+				exp: (/^(?:(?:\^\S*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/(\S*)))(?:\s+(?!$)|$))*$/i),
+				message: `Expected a space separated list of match patterns`,
+			}, },
+			{ type: 'string', },
+		],
+		children: {
+			wikipedia: Fix({
+				title: 'Wikipedia',
+				default: [ [ true, 'https://ru.wikipedia.org/*', `localStorage.setItem('mwe-popups-enabled', '0')`, ], ],
+			}),
+			custom: Fix({
+				title: 'Custom',
+				maxLength: Infinity,
+				default: [ ],
+			}),
+		},
+	},
 	debug: {
 		title: 'Debug Level',
 		expanded: false,
@@ -230,9 +264,9 @@ const model = {
 if (!inContent) {
 	const children = { };
 	model.loaders = {
-		title: `Content Loader Modules`,
+		title: 'Content Loader Modules',
 		description: `${ manifest.name } gets the information it displays from a couple of sources.
-		<br>This secton controls which method to use to get previews for which kind of link.
+		<br>This section controls which method to use to get previews for which kind of link.
 		For each link encountered on an <i>Included Site</i> ${ manifest.name } will check each loader,
 		whose <i>Include Targets</i> match the link, in <i>Priority</i> order high to low.`,
 		expanded: true,
@@ -263,7 +297,7 @@ if (!inContent) {
 					maxLength: Infinity,
 					default: loader.includes,
 					restrict: { unique: '.', match: {
-						exp: (/^(?:\^.*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/([^\ ]*)))$/i),
+						exp: (/^(?:\^\S*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/(\S*)))$/i),
 						message: `Each pattern must be of the form <scheme>://<host>/<path> or be framed with '^' and '$'`,
 					}, },
 					input: { type: 'string', default: '', },

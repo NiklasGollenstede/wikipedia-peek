@@ -90,8 +90,21 @@ content.onHide.addListener(() => Fallback.hide());
 
 (await content.applyNow());
 
+// page compatibility
+const defaultFixes = Object.create(null), custonFixes = [ ];
+const getOptions = ([ active, include, script, ]) => ({
+	script, include: active ? include.split(/\s+/) : [ ],
+	incognito: options.include.children.incognito.value,
+});
+options.fixes.children.forEach(fix => fix.name !== 'custom' && fix.whenChange(([ value, ]) => defaultFixes[fix.name]
+	? Object.assign(defaultFixes[fix.name], getOptions(value))
+	: (defaultFixes[fix.name] = new ContentScript(getOptions(value)))
+));
+options.fixes.children.custom.whenChange(fixes => custonFixes.splice(0, Infinity, ...fixes.map(
+	value => new ContentScript(getOptions(value)))
+).forEach(_=>_.destroy()));
 
-// fixes
+// browser compatibility
 gecko && options.advanced.children.devicePixelRatio.whenChange(value => {
 	global.devicePixelRatio = value; // the devicePixelRatio in the background page is always 1
 });
