@@ -1,12 +1,12 @@
-(function() { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+(function() { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	'background/loader': { register, },
 	'background/utils': { image, },
 	module,
 }) => {
 
 // add: for urls like https://imgur.com/a/{page}
 
-
-const Self = {
+const options = (await register({
 	name: module.id.split('/').pop(),
 	title: `Images`,
 	description: `Works on links to images and displays exactly that image.
@@ -18,8 +18,7 @@ const Self = {
 	async load(url) {
 		return image({ src: url, description: url, });
 	},
-};
-
-return Self;
+}));
+void options;
 
 }); })();

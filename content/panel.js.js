@@ -37,7 +37,7 @@ port.addHandlers({
 
 function size() {
 	const element = document.body, size = document.body.getBoundingClientRect();
-	return { width: size.width, scrollWidth: element.scrollWidth, height: size.height, scrollHeight: element.scrollHeight, dpr: window.devicePixelRatio, };
+	return { width: size.width, scrollWidth: element.scrollWidth, height: size.height, scrollHeight: element.scrollHeight, };
 }
 
 window.resize = () => port.post('setSize', size());

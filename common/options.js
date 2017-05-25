@@ -1,21 +1,10 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	'node_modules/web-ext-utils/browser/': { manifest, inContent, },
+	'node_modules/web-ext-utils/browser/': { manifest, },
 	'node_modules/web-ext-utils/browser/version': { gecko, fennec, },
 	'node_modules/web-ext-utils/options/': Options,
-	require,
 }) => {
 
 const isBeta = (/^\d+\.\d+.\d+(?!$)/).test((global.browser || global.chrome).runtime.getManifest().version); // version doesn't end after the 3rd number ==> bata channel
-
-const Fix = props => Object.assign({
-	expanded: false,
-	restrict: 'inherit',
-	input: [
-		{ type: 'boolean', prefix: 'Active  ', style: { display: 'block', marginBottom: '3px', }, default: true, },
-		{ type: 'string',  prefix: 'Matches',  style: { display: 'block', marginBottom: '3px', }, default: 'https://example.com/*', },
-		{ type: 'code',    prefix: 'Code   ',  default: `// JavaScript code here`, },
-	],
-}, props);
 
 const model = {
 	include: {
@@ -113,6 +102,21 @@ const model = {
 		expanded: false,
 		default: true,
 		children: {
+			plugins: {
+				title: 'Plugins',
+				description: `Other Add-ons can act as Plugins for ${ manifest.name } to provide preview data`,
+				expanded: false,
+				default: true,
+				children: {
+					allowed: {
+						title: 'Allowed Add-ons',
+						description: `The Add-ons with the IDs listed below will be allowed to connect to ${ manifest.name } as plugins`,
+						maxLength: Infinity,
+						default: [ ],
+						input: { type: 'string', default: '', },
+					},
+				},
+			},
 			thumb: {
 				title: 'Thumbnail Images',
 				expanded: false,
@@ -212,7 +216,7 @@ const model = {
 				description: `Nowadays many devices have high resolution displays.
 				To load images in a quality fitting your display and to position the pop-up windows correctly,
 				this extension needs to know that scale factor.<br>
-				It should automatically adjust itself and unless you have zoomed this page, the value should be set to <code>${ devicePixelRatio }</code>.`, // TODO:  this obviously doesn't work anymore ...
+				It should automatically adjust itself whenever you open a page belonging to this Add-on`,
 				expanded: false,
 				default: 1,
 				hidden: !gecko,
@@ -226,7 +230,16 @@ const model = {
 			},
 		},
 	},
-	loaders: undefined,
+	loaders: {
+		title: 'Content Loader Modules',
+		description: `${ manifest.name } gets the information it displays from a couple of sources.
+		<br>This section controls which method to use to get previews for which kind of link.
+		For each link encountered on an <i>Included Site</i> ${ manifest.name } will check each loader,
+		whose <i>Include Targets</i> match the link, in <i>Priority</i> order high to low.`,
+		expanded: true,
+		default: true,
+		children: 'dynamic',
+	},
 	fixes: {
 		title: 'Page compatibility',
 		expanded: false,
@@ -261,58 +274,15 @@ const model = {
 	},
 };
 
-if (!inContent) {
-	const children = { };
-	model.loaders = {
-		title: 'Content Loader Modules',
-		description: `${ manifest.name } gets the information it displays from a couple of sources.
-		<br>This section controls which method to use to get previews for which kind of link.
-		For each link encountered on an <i>Included Site</i> ${ manifest.name } will check each loader,
-		whose <i>Include Targets</i> match the link, in <i>Priority</i> order high to low.`,
-		expanded: true,
-		default: true,
-		children: children,
-	};
-	const loaders = (await Promise.all(
-		(await require.async('node_modules/web-ext-utils/utils/files')).readDir('background/loaders')
-		.map(name => require.async('background/loaders/'+ name.slice(0, -3)))
-	)).sort((a, b) => b.priority - a.priority);
-
-	for (const loader of loaders) {
-		const { name, } = loader;
-		children[name] = {
-			title: loader.title,
-			description: loader.description,
-			expanded: name === 'readability',
-			default: true,
-			children: {
-				priority: {
-					default: loader.priority,
-					restrict: { type: 'number', },
-					input: { type: 'number', prefix: 'Priority:', },
-				},
-				includes: {
-					title: 'Include Targets',
-					description: `List of include patterns (see Included Sites) matching URLs for which this loader will be considered.`,
-					maxLength: Infinity,
-					default: loader.includes,
-					restrict: { unique: '.', match: {
-						exp: (/^(?:\^\S*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/(\S*)))$/i),
-						message: `Each pattern must be of the form <scheme>://<host>/<path> or be framed with '^' and '$'`,
-					}, },
-					input: { type: 'string', default: '', },
-				},
-			},
-		};
-		loader.options && (children[name].children.options = {
-			title: 'Advanced',
-			expanded: false,
-			default: true,
-			children: loader.options,
-		});
-		Object.defineProperty(children[name], 'loader', { value: loader, }); // avoid freezing
-	}
-}
+function Fix(props) { return Object.assign({
+	expanded: false,
+	restrict: 'inherit',
+	input: [
+		{ type: 'boolean', prefix: 'Active  ', style: { display: 'block', marginBottom: '3px', }, default: true, },
+		{ type: 'string',  prefix: 'Matches',  style: { display: 'block', marginBottom: '3px', }, default: 'https://example.com/*', },
+		{ type: 'code',    prefix: 'Code   ',  default: `// JavaScript code here`, },
+	],
+}, props); }
 
 return (await new Options({ model, })).children;
 

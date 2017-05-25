@@ -1,25 +1,39 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/functional': { noop, },
+	'node_modules/es6lib/port': _, // for Messages
 	'node_modules/web-ext-utils/browser/': { manifest, browserAction = noop, Tabs, Messages, runtime, },
 	'node_modules/web-ext-utils/browser/version': { gecko, fennec, },
 	'node_modules/web-ext-utils/loader/': { ContentScript, detachFormTab, getFrame, },
+	'node_modules/web-ext-utils/loader/views': Views,
 	'node_modules/web-ext-utils/update/': updated,
-	'node_modules/web-ext-utils/utils/': { reportError, },
+	'node_modules/web-ext-utils/utils/': { reportError, reportSuccess, },
+	'node_modules/web-ext-utils/utils/files': { readDir, },
 	'common/options': options,
 	Fallback, // loading this on demand is to slow in fennec
 	Loader,
+	remote,
 	require,
 }) => {
 
 let debug; options.debug.whenChange(([ value, ]) => { debug = value; require('node_modules/web-ext-utils/loader/').debug = debug >= 2; });
 debug && console.info(manifest.name, 'loaded, updated', updated);
 
-browserAction.setIcon({ path: manifest.icons, });
+browserAction.setIcon({ path: manifest.icons, }); // fennec 55 nightly doesn't like browserAction icons in the manifest
+void remote; // the remote plugin handler just needs to be loaded early
 
 // Messages
 Messages.addHandler(function getPreview() { return Loader.getPreview(this, ...arguments); }); // eslint-disable-line no-invalid-this
 Messages.addHandler('reportError', reportError);
 Messages.addHandlers('Fallback.', Fallback);
+
+
+// Loaders
+(await Promise.all(readDir('background/loaders').map(name => require.async('background/loaders/'+ name.slice(0, -3)))));
+options.advanced.children.resetCache.onChange((_, __, { values, }) => {
+	if (!values.isSet) { return; } values.reset();
+	Loader.clearCache();
+	reportSuccess('Cache cleared');
+});
 
 
 // ContentScript
@@ -90,6 +104,7 @@ content.onHide.addListener(() => Fallback.hide());
 
 (await content.applyNow());
 
+
 // page compatibility
 const defaultFixes = Object.create(null), custonFixes = [ ];
 const getOptions = ([ active, include, script, ]) => ({
@@ -104,10 +119,12 @@ options.fixes.children.custom.whenChange(fixes => custonFixes.splice(0, Infinity
 	value => new ContentScript(getOptions(value)))
 ).forEach(_=>_.destroy()));
 
+
 // browser compatibility
 gecko && options.advanced.children.devicePixelRatio.whenChange(value => {
 	global.devicePixelRatio = value; // the devicePixelRatio in the background page is always 1
 });
+gecko && Views.onOpen(({ view, }) => global.devicePixelRatio !== view.devicePixelRatio && (options.advanced.children.devicePixelRatio.value = view.devicePixelRatio));
 fennec && debug && (await runtime.openOptionsPage());
 
 

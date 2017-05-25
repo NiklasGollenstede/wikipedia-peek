@@ -1,37 +1,12 @@
-(function(global) { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+(function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/es6lib/network': { HttpRequest, },
+	'background/loader': { register, },
 	'background/utils': { extractSection, article, setFunctionOnChange, },
-	require,
+	'common/options': { advanced: { children: advanced, }, },
 	module,
 }) => { /* global URL, */
 
-let options, advanced; require([ 'common/options', ], _ => {
-	advanced = _.advanced.children; options = _.loaders.children[Self.name].children.options.children;
-	setFunctionOnChange(Self, options, getApiPath);
-	setFunctionOnChange(Self, options, getArticleName);
-});
-
-function getApiPath(url) {
-	url = new URL(url);
-	if ((/(?:^|\.)(?:wiki[^\.]*?|mediawiki)\.org$/).test(url.hostname)) {
-		return 'https://'+ url.host +'/w/api.php'; // always use https
-	}
-	if ((/(?:^|\.)gamepedia\.com$/).test(url.hostname)) {
-		return 'https://'+ url.host +'/api.php'; // always use https
-	}
-	return null;
-}
-
-function getArticleName(url) {
-	url = new URL(url);
-	const title = url.pathname.replace(/^\/(?:wiki\/)?/, '');
-	if (url.search || (/^(?:File|Special|Portal):/).test(title)) { return ''; }
-	if ((/\.(?:jpe?g|png|gif|svg)$/).test(title)) { return null; }
-	const section = url.hash.slice(1);
-	return title +'#'+ section;
-}
-
-const Self = {
+const options = (await register({
 	name: module.id.split('/').pop(),
 	title: `Wikipedia and Mediawiki`,
 	description: `Works for links to Wikipedia articles and most other Wikimadia resources such as Wikinews.
@@ -66,48 +41,72 @@ const Self = {
 		},
 	},
 
-	getApiPath, getArticleName,
+	load,
+}));
 
-	async load(url) {
-		// if (Math.random() > .5) { return ''; } // TODO: remove
-		const api = (await Self.getApiPath(url));
-		const name = (await Self.getArticleName(url));
-		const lang = (/:\/\/([^.]*)/).exec(url)[1];
-		if (!api || !name) { return null; }
-		const [ , title, section, ] = (/^(.*?)(?:#(.*))?$/).exec(name);
-		return Self.doLoad(api, title, section, lang);
-	},
+const functions = { getApiPath, getArticleName, };
+setFunctionOnChange(functions, options, getApiPath);
+setFunctionOnChange(functions, options, getArticleName);
 
-	async doLoad(api, title, section, lang) {
+async function load(url) {
+	// if (Math.random() > .5) { return ''; } // TODO: remove
+	const api = (await functions.getApiPath(url));
+	const name = (await functions.getArticleName(url));
+	const lang = (/:\/\/([^.]*)/).exec(url)[1];
+	if (!api || !name) { return null; }
+	const [ , title, section, ] = (/^(.*?)(?:#(.*))?$/).exec(name);
+	return doLoad(api, title, section, lang);
+}
 
-		const thumbPx = advanced.thumb.children.size.value * global.devicePixelRatio;
-		const src = (
-			api +'?action=query&format=json&formatversion=2&redirects='
-			+ '&prop=extracts|pageimages'
-			+ (section ? '' : '&exintro=')
-			+ '&piprop=thumbnail|original&pithumbsize='+ thumbPx
-			+ '&titles='+ title
-		);
+async function doLoad(api, title, section, lang) {
 
-		const { response, } = (await HttpRequest({ src, responseType: 'json', }));
-		if (!response || !response.query) { return null; }
+	const thumbPx = advanced.thumb.children.size.value * global.devicePixelRatio;
+	const src = (
+		api +'?action=query&format=json&formatversion=2&redirects='
+		+ '&prop=extracts|pageimages'
+		+ (section ? '' : '&exintro=')
+		+ '&piprop=thumbnail|original&pithumbsize='+ thumbPx
+		+ '&titles='+ title
+	);
 
-		const redirect = response.query.redirects && response.query.redirects[0] || { };
-		if (redirect.tofragment) { if (section) {
-			section = redirect.tofragment;
-		} else {
-			return Self.doLoad(api, redirect.to, redirect.tofragment);
-		} }
+	const { response, } = (await HttpRequest({ src, responseType: 'json', }));
+	if (!response || !response.query) { return null; }
 
-		const page = response.query.pages[0];
+	const redirect = response.query.redirects && response.query.redirects[0] || { };
+	if (redirect.tofragment) { if (section) {
+		section = redirect.tofragment;
+	} else {
+		return doLoad(api, global.encodeURIComponent(redirect.to), global.encodeURIComponent(redirect.tofragment).replace(/\./g, '%2E').replace(/%/g, '.'));
+	} }
 
-		const thumb = !section && advanced.thumb.value && page.thumbnail || { width: 0, height: 0, };
-		const html = extractSection(page.extract || '', section).replace(/<p>\s*<\/p>/, '');
+	const page = response.query.pages[0];
 
-		return article({ html, thumb, lang, });
-	},
-};
+	const thumb = !section && advanced.thumb.value && page.thumbnail || { width: 0, height: 0, };
+	const html = extractSection(page.extract || '', section).replace(/<p>\s*<\/p>/, '');
 
-return Self;
+	return article({ html, thumb, lang, });
+}
+
+function getApiPath(url) {
+	url = new URL(url);
+	if ((/(?:^|\.)(?:wiki[^\.]*?|mediawiki)\.org$/).test(url.hostname)) {
+		return 'https://'+ url.host +'/w/api.php'; // always use https
+	}
+	if ((/(?:^|\.)gamepedia\.com$/).test(url.hostname)) {
+		return 'https://'+ url.host +'/api.php'; // always use https
+	}
+	return null;
+}
+
+function getArticleName(url) {
+	url = new URL(url);
+	const title = url.pathname.replace(/^\/(?:wiki\/)?/, '');
+	if (url.search || (/^(?:File|Special|Portal):/).test(title)) { return ''; }
+	if ((/\.(?:jpe?g|png|gif|svg)$/).test(title)) { return null; }
+	const section = url.hash.slice(1);
+	return title +'#'+ section;
+}
+
+return { options, load, };
 
 }); })(this);

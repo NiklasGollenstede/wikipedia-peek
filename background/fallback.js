@@ -68,8 +68,6 @@ const methods = {
 		if (!view.document.hasFocus()) { return void methods.hide(); }
 
 		async function setSize(content) {
-			if (gecko && content.dpr && content.dpr !== global.devicePixelRatio)
-			{ global.devicePixelRatio = options.advanced.children.devicePixelRatio.value = content.dpr; }
 			const addTop  = offsetTop[parent.state].value;
 			const height  = Math.min((content.scrollHeight + 40), parent.height - addTop - anchor.top / global.devicePixelRatio) <<0;
 			const width   = content.scrollWidth + 30 <<0;
