@@ -1,9 +1,8 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	'node_modules/es6lib/functional': { noop, },
 	'node_modules/es6lib/port': _, // for Messages
-	'node_modules/web-ext-utils/browser/': { manifest, browserAction = noop, Tabs, Messages, runtime, },
+	'node_modules/web-ext-utils/browser/': { manifest, browserAction, Tabs, Messages, runtime, },
 	'node_modules/web-ext-utils/browser/version': { gecko, fennec, },
-	'node_modules/web-ext-utils/loader/': { ContentScript, detachFormTab, getFrame, },
+	'node_modules/web-ext-utils/loader/': { ContentScript, detachFormTab, },
 	'node_modules/web-ext-utils/loader/views': Views,
 	'node_modules/web-ext-utils/update/': updated,
 	'node_modules/web-ext-utils/utils/': { reportError, reportSuccess, },
@@ -40,7 +39,6 @@ options.advanced.children.resetCache.onChange((_, __, { values, }) => {
 const content = new ContentScript({
 	modules: [ 'content/index', ],
 });
-const active = content.active = new WeakSet;
 options.include.whenChange(values => {
 	try { content.include = values; } catch (error) { reportError(`Invalid URL pattern`, error); throw error; }
 });
@@ -69,35 +67,32 @@ browserAction.onClicked.addListener(onClick);
 async function onClick() { try {
 
 	const tab = (await Tabs.query({ currentWindow: true, active: true, }))[0];
-	if (active.has(getFrame(tab.id, 0))) {
+	if ((await content.appliedToFrame(tab.id, 0))) {
 		detachFormTab(tab.id, 0);
 	} else {
 		onMatch(...(await content.applyToFrame(tab.id, 0)));
 	}
 
-} catch (error) { reportError(error); throw error; } }
+} catch (error) { reportError(error); } }
 
 browserAction.setBadgeBackgroundColor({ color: [ 0x00, 0x7f, 0x00, 0x60, ], });
 
 content.onMatch.addListener(onMatch); function onMatch(frame, url, done) {
 	done.catch(reportError);
-	active.add(frame);
 	!frame.frameId && browserAction.setBadgeText({ tabId: frame.tabId, text: '✓', });
 	!frame.frameId && browserAction.setTitle({ tabId: frame.tabId, title: 'Disable '+ manifest.name, });
-	debug && console.debug('match frame', frame.tabId, frame.frameId, frame.incognito);
-	frame.onRemove.addListener(frame => debug && console.debug('frame removed', frame));
+	debug && console.info('match frame', frame.tabId, frame.frameId, frame.incognito);
+	frame.onRemove.addListener(frame => debug && console.info('frame removed', frame));
 }
 content.onShow.addListener(frame => {
-	active.add(frame);
 	!frame.frameId && browserAction.setBadgeText({ tabId: frame.tabId, text: '✓', });
 	!frame.frameId && browserAction.setTitle({ tabId: frame.tabId, title: 'Disable '+ manifest.name, });
-	debug && console.debug('show frame (again)', frame);
+	debug && console.info('show frame (again)', frame);
 });
 content.onHide.addListener(frame => {
-	active.delete(frame);
-	!frame.frameId && (browserAction.setBadgeText({ tabId: frame.tabId, text: '', }) || noop).catch(_=>_); // can't catch in chrome
-	!frame.frameId && (browserAction.setTitle({ tabId: frame.tabId, title: 'Enable '+ manifest.name, }) || noop).catch(_=>_); // can't catch in chrome
-	debug && console.debug('hide frame', frame);
+	!frame.frameId && browserAction.setBadgeText({ tabId: frame.tabId, text: '', }).catch(_=>_);
+	!frame.frameId && browserAction.setTitle({ tabId: frame.tabId, title: 'Enable '+ manifest.name, }).catch(_=>_);
+	debug && console.info('hide frame', frame);
 });
 
 content.onHide.addListener(() => Fallback.hide());

@@ -79,12 +79,11 @@ async function onConnect(connection) { try {
 // enqueue all ports that connect before this module is ready
 const queue = [ ], onConnect = port => queue.push(port);
 
-(global.browser || global.chrome).runtime.onConnectExternal.addListener(onConnect);
+const event = (global.browser || global.chrome).runtime.onConnectExternal;
+if (!event) { define({ }); return false; }
 
-prepare.done = () => {
-	(global.browser || global.chrome).runtime.onConnectExternal.removeListener(onConnect);
-	return queue;
-};
+event.addListener(onConnect);
+prepare.done = () => (event.removeListener(onConnect), queue);
 
 return true;
 

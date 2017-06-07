@@ -15,14 +15,7 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 
 	files.node_modules = {
 		es6lib: [
-			'template.js',
-			'concurrent.js',
-			'dom.js',
-			'functional.js',
-			'index.js',
-			'namespace.js',
 			'network.js',
-			'object.js',
 			'port.js',
 			'require.js',
 			'string.js',
@@ -56,7 +49,6 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 				'event.js',
 				'files.js',
 				'index.js',
-				'inject.js',
 				'semver.js',
 			],
 		},

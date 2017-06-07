@@ -16,7 +16,9 @@ The add-on itself does not collect any data. Note however, that the article prev
 # How to Build
 
   - `git clone https://github.com/NiklasGollenstede/wikipedia-peek && cd wikipedia-peek`
+      - on Windows, use `git clone -c core.symlinks=true <URL>` from an elevated cmd to preserve symlinks
   - `npm install`
-  - `npm start`<br>
-    and temporary load from the `./build/` directory, use the `.zip` file therein<br>
-    or `npm start -- {run:1}` to debug in a new Firefox instance.
+  - `npm start` to build and
+      - and load as unpacked extension either from the root or the from the `./build/` directory,
+      - use the `.zip` file in the `./build` directory
+      - or use `npm start {run:'path/to/firefox or true for the default firefox'}` to debug in a new Firefox instance.

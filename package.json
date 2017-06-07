@@ -21,8 +21,8 @@
 		"readability": "mozilla/readability#1369f92",
 		"es6lib": "NiklasGollenstede/es6lib#73ece8f",
 		"regexpx": "NiklasGollenstede/regexpx#eebed29",
-		"web-ext-utils": "NiklasGollenstede/web-ext-utils#97f04c5",
-		"web-ext-build": "NiklasGollenstede/web-ext-build#52daebd"
+		"web-ext-build": "NiklasGollenstede/web-ext-build#52daebd",
+		"web-ext-utils": "NiklasGollenstede/web-ext-utils#dd984aa"
 	},
 	"devDependencies": {
 		"babel-eslint": "7.1.1",
