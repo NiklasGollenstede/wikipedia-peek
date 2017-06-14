@@ -1,0 +1,29 @@
+{
+	"manifest_version": 2,
+	"name": "Wikipedia Peek Test Plugin",
+	"short_name": "Test Plugin",
+	"version": "0.0.1",
+	"author": "Niklas Gollenstede",
+	"license": "MPL-2.0",
+	"description": "Very simple test plugin for Wikipedia Peek",
+	"minimum_chrome_version": "55.0.0",
+	"applications": {
+		"gecko": {
+			"id": "@wikipedia-peek-test-plugin",
+			"strict_min_version": "52.0"
+		}
+	},
+	"permissions": [
+	],
+	"optional_permissions": [ ],
+	"web_accessible_resources": [ ],
+	"incognito": "spanning",
+	"background": {
+		"scripts": [
+			"lib/plugin/index.js",
+			"background.js"
+		],
+		"persistent": false
+	},
+	"content_scripts": [ ]
+}

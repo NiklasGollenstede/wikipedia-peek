@@ -4,6 +4,6 @@ node_modules
 npm-debug.log
 /build/
 /update/*/versions.json
-files.json
-manifest.json
-view.html
+/files.json
+/manifest.json
+/view.html

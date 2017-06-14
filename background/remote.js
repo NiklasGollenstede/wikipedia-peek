@@ -23,7 +23,7 @@ async function onConnect(connection) { try {
 	}
 
 	if (!allowedIds.values.current.includes(connection.sender.id)) {
-		(await reportError(`Plugin with ID ${ connection.sender.id } not allowed`));
+		(await reportError(`Plugin with ID "${ connection.sender.id }" not allowed`));
 		// TODO: ask other end for info, then ask the user if they want to accept
 		// const info = (await port.request('getPluginInfo'));
 		return void port.destroy();

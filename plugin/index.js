@@ -3,6 +3,30 @@
 const chrome = global.browser || global.chrome;
 const gecko = chrome.extension.getURL('').startsWith('moz-');
 
+/**
+ * Registers a content loader for Wikipedia Peek.
+ * The loader will be contacted whenever Wikipedia Peek needs to display a preview for an appropriate URL.
+ * @param  {object}     loader             Object with all the information about the loader:
+ * @param  {string}     .name              Internal name to identify the loader. Must be unique and constant. Will be used to store the `.options`.
+ * @param  {string}     .title             Human readable name of the loader. Is displayed to the user on the options page of Wikipedia Peek.
+ * @param  {string}     .description       Description to go along with the `.title`.
+ * @param  {integer}    .priority          The default value of the loaders `Priority` option.
+ * @param  {[string]}   .includes          The default value of the loaders `Include Targets` option.
+ * @param  {object?}    .options           Optional object describing the loaders `Advanced` options. See Wikipedia Peeks own options for the not-yet-documented format.
+ * @param  {function}   .load(url)         The actual loader function. Will be called with string URLs matching the `.includes` (which may be modified by the user)
+ *                                         and returns a (Promise to) the preview as an HTML string or `null` if the loader could not find a preview.
+ *                                         The result will be cached (currently in-memory only) unless the loader throws/rejects.
+ * @param  {function}   getPluginInfo      Currently unused.
+ *
+ * @return {object}                        Object that allows access to the options values and the onDisconnect Event.
+ * @return {object}    .options            Provides access to the options. Option keys are the `.names` of the options (their keys in object declarations)  joined by `.`s.
+ *                                         Option values are always Arrays, to allow for multiple valued options. Single values must be wrapped in Arrays.
+ * @return {object}    .options.values     Object that always holds the current value of all options declared, will be updated before the `.onChanged` event fires.
+ *                                         Access as `.options.values[key]`.
+ * @return {function}  .options.set        Async function (key, values) to set option values.
+ * @return {Event}     .options.onChanged  Event that fires (key, values) whenever an option was changed (by the user, this Add-on, Wikipedia Peek or otherwise).
+ * @return {Event}     .onDisconnect       Event that fires when the underlying port connection to Wikipedia Peek closed. If you want to reconnect, do so manually.
+ */
 async function register(loader, getPluginInfo = _getPluginInfo) {
 
 	let port, retry = 5;
@@ -40,7 +64,7 @@ async function register(loader, getPluginInfo = _getPluginInfo) {
 			values: options,
 			set(key, values) { return port.request('options.set', key, values); },
 			onChanged: {
-				addListener(listener,) { onChanged.add(listener); },
+				addListener(listener) { onChanged.add(listener); },
 				hasListener(listener) { return onChanged.has(listener); },
 				removeListener(listener) { onChanged.delete(listener); },
 			},
@@ -58,7 +82,7 @@ function connect() {
 	port.onMessage.addListener(onMessage);
 	return port;
 
-	async function onMessage([ method, id, args, ]) {
+	async function onMessage([ method, id, args, ]) { // TODO: this communicates with a proper es6lib/Port, but does no .mapValue conversion
 		args = JSON.parse(args);
 		if (method === '') { // handle responses
 			const threw = id < 0; threw && (id = -id);
