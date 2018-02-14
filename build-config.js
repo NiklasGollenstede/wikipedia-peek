@@ -1,5 +1,5 @@
 /*eslint strict: ["error", "global"], no-implicit-globals: "off"*/ 'use strict'; /* globals module, */ // license: MPL-2.0
-module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
+module.exports = function({ options, /*packageJson,*/ manifestJson, files, }) {
 
 	manifestJson.permissions.push(
 		'contentEval',
@@ -11,13 +11,16 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 
 	manifestJson.content_security_policy = `script-src 'self' 'unsafe-eval' 'sha256-QMSw9XSc08mdsgM/uQhEe2bXMSqOw4JvoBdpHZG21ps='; object-src 'self';`; // see common/sandbox.js
 
-	manifestJson.browser_action && (manifestJson.browser_action.default_title = `Toggle ${ manifestJson.name }`);
+	manifestJson.browser_action = {
+		default_icon: manifestJson.icons,
+		default_title: `Toggle ${manifestJson.name}`,
+	};
+
+	!options.viewRoot && (options.viewRoot = options.chrome ? 'WikiPeek.html' : 'WikiPeek');
 
 	files.node_modules = {
 		es6lib: [
 			'network.js',
-			'port.js',
-			'require.js',
 			'string.js',
 		],
 		readability: [
@@ -29,6 +32,8 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 		'web-ext-utils': {
 			'.': [
 				'browser/',
+				'lib/pbq/require.js',
+				'lib/multiport/index.js',
 				'loader/',
 			],
 			options: {
@@ -46,6 +51,7 @@ module.exports = function({ /*options, packageJson,*/ manifestJson, files, }) {
 				'index.js',
 			],
 			utils: [
+				'icons/',
 				'event.js',
 				'files.js',
 				'index.js',

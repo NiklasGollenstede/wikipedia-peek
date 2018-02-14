@@ -2,7 +2,7 @@
 	'node_modules/web-ext-utils/loader/content': { onUnload, },
 	'common/options': options,
 	'common/sandbox': makeSandbox,
-	'fetch!./panel.css': css,
+	'fetch!./panel.css:css': css,
 	'fetch!./panel.html': html,
 	'./panel.js': js,
 	'./': { request, sleep, },
@@ -108,7 +108,7 @@ const Overlay = {
 		return void (await setState('failed', element, visible));
 	},
 	async show(element, content) {
-		return void (await setState('showing', element, { content, maxWidth: document.documentElement.clientWidth - 20, }));
+		return void (await setState('showing', element, { content, maxWidth: Math.min(document.documentElement.clientWidth, window.screen.width) - 20, }));
 	},
 	async cancel(element) {
 		if (state !== 'loading' || !element || element !== target) { return; }

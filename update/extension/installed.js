@@ -15,14 +15,14 @@ notifications.create(module.id, {
 
 notifications.onClicked.addListener(onClicked);
 
-async function onClicked (id) {
+async function onClicked(id) {
 	if (id !== module.id) { return; }
 	(await Tabs.create({ url: 'https://en.wikipedia.org/wiki/Main_Page', }));
 }
 
-setTimeout(() => {
+global.setTimeout(() => {
 	notifications.clear(module.id);
-	notifications.onClicked.addListener(onClicked);
+	notifications.onClicked.removeListener(onClicked);
 }, 60e3);
 
 }); })(this);

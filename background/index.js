@@ -1,6 +1,6 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	'node_modules/es6lib/port': _, // for Messages
-	'node_modules/web-ext-utils/browser/': { manifest, browserAction, Tabs, Messages, runtime, },
+	'node_modules/web-ext-utils/browser/': { manifest, browserAction, Tabs, runtime, },
+	'node_modules/web-ext-utils/browser/messages': Messages,
 	'node_modules/web-ext-utils/browser/version': { gecko, fennec, },
 	'node_modules/web-ext-utils/loader/': { ContentScript, detachFormTab, },
 	'node_modules/web-ext-utils/loader/views': Views,
@@ -17,7 +17,6 @@
 let debug; options.debug.whenChange(([ value, ]) => { debug = value; require('node_modules/web-ext-utils/loader/').debug = debug >= 2; });
 debug && console.info(manifest.name, 'loaded, updated', updated);
 
-browserAction.setIcon({ path: manifest.icons, }); // fennec 55 nightly doesn't like browserAction icons in the manifest
 void remote; // the remote plugin handler just needs to be loaded early
 
 // Messages
@@ -82,20 +81,14 @@ content.onMatch.addListener(onMatch); function onMatch(frame, url, done) {
 	!frame.frameId && browserAction.setBadgeText({ tabId: frame.tabId, text: '✓', });
 	!frame.frameId && browserAction.setTitle({ tabId: frame.tabId, title: 'Disable '+ manifest.name, });
 	debug && console.info('match frame', frame.tabId, frame.frameId, frame.incognito);
-	frame.onRemove.addListener(frame => debug && console.info('frame removed', frame));
 }
-content.onShow.addListener(frame => {
-	!frame.frameId && browserAction.setBadgeText({ tabId: frame.tabId, text: '✓', });
-	!frame.frameId && browserAction.setTitle({ tabId: frame.tabId, title: 'Disable '+ manifest.name, });
-	debug && console.info('show frame (again)', frame);
-});
-content.onHide.addListener(frame => {
+content.onUnload.addListener(frame => {
 	!frame.frameId && browserAction.setBadgeText({ tabId: frame.tabId, text: '', }).catch(_=>_);
 	!frame.frameId && browserAction.setTitle({ tabId: frame.tabId, title: 'Enable '+ manifest.name, }).catch(_=>_);
-	debug && console.info('hide frame', frame);
+	debug && console.info('unload frame', frame);
 });
 
-content.onHide.addListener(() => Fallback.hide());
+content.onUnload.addListener(() => Fallback.hide());
 
 (await content.applyNow());
 

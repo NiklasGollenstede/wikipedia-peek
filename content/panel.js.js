@@ -14,7 +14,7 @@ port.addHandlers({
 			case 'showing': {
 				const { content, maxWidth, } = arg;
 				const scripts = [ ], element = document.querySelector('#content');
-				element.style.maxWidth = Math.min(maxWidth, window.screen.width) +'px';
+				element.style.maxWidth = maxWidth +'px';
 				element.innerHTML = content.replace(/<script>([^]*?)<\/script>/g, (_, script) => (scripts.push(script), ''));
 				document.body.classList.remove('loading');
 				document.body.classList.remove('failed');

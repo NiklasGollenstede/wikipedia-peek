@@ -1,4 +1,5 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	'node_modules/web-ext-utils/browser/storage': { sync: storage, },
 	'node_modules/web-ext-utils/utils/': { reportError, parseMatchPatterns, },
 	'node_modules/web-ext-utils/options/': Options,
 	'common/options': options,
@@ -13,7 +14,7 @@ async function register(loader) {
 	if (loaders.some(_=>_.name === name)) { throw new Error(`Duplicate loader name "${ name }"`); }
 	if (!Array.isArray(includes) || includes.some(_ => typeof _ !== 'string')) { throw new TypeError(`Loader.includes must be an Array of strings`); }
 
-	const options = (await new Options({ model: { [name]: {
+	const options = new Options({ model: { [name]: {
 		title, description,
 		expanded: name === 'readability',
 		default: true,
@@ -42,7 +43,7 @@ async function register(loader) {
 				children: model,
 			},
 		},
-	}, }, prefix: `options.loaders`, })).children[0].children;
+	}, }, storage, prefix: `options.loaders`, }).children[0].children;
 
 	loaderOptions.splice((loaderOptions.findIndex(_=>_.children.priority.default < priority) + 1 || Infinity) - 1, 0, options.parent);
 

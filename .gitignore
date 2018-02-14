@@ -1,9 +1,11 @@
 *.xpi
 *.zip
 node_modules
+package-lock.json
 npm-debug.log
 /build/
 /update/*/versions.json
 /files.json
 /manifest.json
-/view.html
+/WikiPeek.html
+/WikiPeek

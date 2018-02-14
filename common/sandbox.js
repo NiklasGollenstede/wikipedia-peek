@@ -1,5 +1,5 @@
 (function(global) { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	'node_modules/es6lib/port': Port,
+	'node_modules/web-ext-utils/lib/multiport/': Port,
 	'node_modules/web-ext-utils/browser/': { rootUrl, inContent, },
 	'node_modules/web-ext-utils/browser/version': { gecko, },
 	require,
@@ -32,7 +32,7 @@ async function makeSandbox(init, {
 			const port = new Port(port1, Port.MessagePort); \0
 			window.onmessage = null; port1 = null; \0
 			(${ init })(port); \0
-		})((${ require.cache['node_modules/es6lib/port'].factory })());
+		})((function(global) { 'use strict'; console.log(42); console.log(global); return (${ require.cache['node_modules/web-ext-utils/lib/multiport/index'].factory })(); })(window));
 	//# sourceURL=${ srcUrl }\n`.replace(/ \0[\r\n]\s*/g, ' ');
 
 	if (!inContent) { // Firefox doesn't allow inline scripts in the extension pages,
