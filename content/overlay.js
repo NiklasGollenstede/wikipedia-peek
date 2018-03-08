@@ -122,6 +122,7 @@ const Overlay = {
 {
 	frame.style.position = 'absolute';
 	frame.style.border = 'none';
+	frame.style.backgroundColor = 'transparent';
 	frame.style.transform = 'translateX(-50%)'; // change '.left' to actually mean '.center'
 	frame.style.zIndex = '2147483647'; // max
 }

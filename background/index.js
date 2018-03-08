@@ -87,6 +87,12 @@ content.onUnload.addListener(frame => {
 	!frame.frameId && browserAction.setTitle({ tabId: frame.tabId, title: 'Enable '+ manifest.name, }).catch(_=>_);
 	debug && console.info('unload frame', frame);
 });
+Tabs.onUpdated.addListener(async (tabId, change) => { if (
+	('url' in change) && (await content.appliedToFrame(tabId, 0))
+) {
+	browserAction.setBadgeText({ tabId, text: '✓', });
+	browserAction.setTitle({ tabId, title: 'Disable '+ manifest.name, });
+} });
 
 content.onUnload.addListener(() => Fallback.hide());
 

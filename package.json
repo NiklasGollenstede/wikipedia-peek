@@ -1,6 +1,6 @@
 {
 	"name": "wikipedia-peek",
-	"version": "2.8.6",
+	"version": "2.8.7",
 	"title": "Wikipedia Peek",
 	"description": "Browser extension that shows previews of linked articles on Wikipedia pages",
 	"author": "Niklas Gollenstede",

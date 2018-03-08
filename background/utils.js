@@ -106,7 +106,7 @@ function image({ src, img, title, description, base, dpi, }) { return (
 			typeof dpi !== 'number' && (dpi = +((/[-@_](\d)x\.\w{1,5}$/).exec(src) || [ 0, 1, ])[1] > devicePixelRatio ? 1 : devicePixelRatio);
 			const width = img.naturalWidth / (devicePixelRatio / dpi);
 			img.style.width = width  +'px';
-			document.querySelector('#content').style.width = width + 8 +'px';
+			document.querySelector('#content').style.width = width + 8 +'px'; // TODO: this would need to be removed for the next preview
 			(await window.resize());
 			setTimeout(() => window.resize(), 10);
 		});
