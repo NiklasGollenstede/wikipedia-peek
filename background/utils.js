@@ -10,7 +10,7 @@
  * @return {[ string, number, ]}        Sanitized, undangerous, simple HTML and the text length of that HTML.
  */
 function sanatize(html) {
-	const allowed = /^(?:a|b|big|br|code|div|i|p|pre|li|ol|ul|span|sup|sub|tt|math|semantics|annotation(?:-xml)?|m(?:enclose|error|fenced|frac|i|n|o|over|padded|root|row|s|space|sqrt|sub|supsubsup|table|td|text|tr|under|underover))$/;
+	const allowed = /^(?:a|abbr|b|big|br|code|div|i|p|pre|kbd|li|ol|ul|semantics|small|spam|span|sup|sub|tt|var|math|annotation(?:-xml)?|m(?:enclose|error|fenced|frac|i|n|o|over|padded|root|row|s|space|sqrt|sub|supsubsup|table|td|text|tr|under|underover))$/;
 	let tagLength = 0;
 	const text = html.replace(
 		(/<(\/?)(\w+)[^>]*?(\s+href="(?!(?:javascript|data):)[^"]*?")?(\s+title="[^"]*?")?[^>]*?>/g),

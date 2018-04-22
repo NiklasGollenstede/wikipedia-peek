@@ -32,7 +32,7 @@ async function makeSandbox(init, {
 			const port = new Port(port1, Port.MessagePort); \0
 			window.onmessage = null; port1 = null; \0
 			(${ init })(port); \0
-		})((function(global) { 'use strict'; console.log(42); console.log(global); return (${ require.cache['node_modules/web-ext-utils/lib/multiport/index'].factory })(); })(window));
+		})((function(global) { 'use strict'; return (${ require.cache['node_modules/web-ext-utils/lib/multiport/index'].factory })(); })(window));
 	//# sourceURL=${ srcUrl }\n`.replace(/ \0[\r\n]\s*/g, ' ');
 
 	if (!inContent) { // Firefox doesn't allow inline scripts in the extension pages,

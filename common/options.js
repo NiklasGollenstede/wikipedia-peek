@@ -150,15 +150,13 @@ const model = {
 				default: true,
 				children: {
 					match: {
-						title: 'Match',
-						description: `any of these CSS selectors themselves`,
+						description: `<b>Match</b> any of these CSS selectors themselves`,
 						maxLength: Infinity,
 						default: [ ],
 						input: { type: 'string', default: '.no-preview, .no-preview *', },
 					},
 					contain: {
-						title: 'Contain',
-						description: `an element that matches any of these CSS selectors`,
+						description: `<b>Contain</b> an element that matches any of these CSS selectors`,
 						maxLength: Infinity,
 						default: [ 'img', ],
 						input: { type: 'string', default: 'img', },
@@ -256,7 +254,7 @@ const model = {
 		children: {
 			wikipedia: Fix({
 				title: 'Wikipedia',
-				default: [ [ true, 'https://ru.wikipedia.org/*', `localStorage.setItem('mwe-popups-enabled', '0')`, ], ],
+				default: [ [ true, 'https://*.wikipedia.org/*', `localStorage.setItem('mwe-popups-enabled', '0');`, ], ],
 			}),
 			custom: Fix({
 				title: 'Custom',

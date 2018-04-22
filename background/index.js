@@ -27,6 +27,7 @@ Messages.addHandlers('Fallback.', Fallback);
 
 // Loaders
 (await Promise.all(readDir('background/loaders').map(name => require.async('background/loaders/'+ name.slice(0, -3)))));
+Views.getViews().forEach(loc => loc.name === 'options' && loc.view.location.reload());
 options.advanced.children.resetCache.onChange((_, __, { values, }) => {
 	if (!values.isSet) { return; } values.reset();
 	Loader.clearCache();
@@ -96,22 +97,23 @@ Tabs.onUpdated.addListener(async (tabId, change) => { if (
 
 content.onUnload.addListener(() => Fallback.hide());
 
-(await content.applyNow());
+content.applyNow().then(() => debug && console.info('cs.applyNow() resolved'));
 
 
 // page compatibility
-const defaultFixes = Object.create(null), custonFixes = [ ];
+const defaultFixes = Object.create(null), customFixes = [ ];
 const getOptions = ([ active, include, script, ]) => ({
 	script, include: active ? include.split(/\s+/) : [ ],
 	incognito: options.include.children.incognito.value,
 });
-options.fixes.children.forEach(fix => fix.name !== 'custom' && fix.whenChange(([ value, ]) => defaultFixes[fix.name]
-	? Object.assign(defaultFixes[fix.name], getOptions(value))
-	: (defaultFixes[fix.name] = new ContentScript(getOptions(value)))
-));
-options.fixes.children.custom.whenChange(fixes => custonFixes.splice(0, Infinity, ...fixes.map(
-	value => new ContentScript(getOptions(value)))
-).forEach(_=>_.destroy()));
+options.fixes.children.forEach(fix => { if (fix.name === 'custom') {
+	fix.whenChange(fixes => { customFixes.splice(0, Infinity, ...fixes.map(
+		value => new ContentScript(getOptions(value))
+	)).forEach(_=>_.destroy()); });
+} else {
+	const cs = defaultFixes[fix.name] = new ContentScript(getOptions(fix.value));
+	fix.onChange(([ value, ]) => Object.assign(cs, getOptions(value)));
+} });
 
 
 // browser compatibility
@@ -119,7 +121,6 @@ gecko && options.advanced.children.devicePixelRatio.whenChange(value => {
 	global.devicePixelRatio = value; // the devicePixelRatio in the background page is always 1
 });
 gecko && Views.onOpen(({ view, }) => global.devicePixelRatio !== view.devicePixelRatio && (options.advanced.children.devicePixelRatio.value = view.devicePixelRatio));
-fennec && debug && (await runtime.openOptionsPage());
 
 
 // debugging
@@ -128,6 +129,7 @@ Object.assign(global, {
 	Browser: require('node_modules/web-ext-utils/browser/'),
 	Loader:  require('node_modules/web-ext-utils/loader/'),
 	Utils:   require('node_modules/web-ext-utils/utils/'),
+	defaultFixes, customFixes,
 });
 
 }); })(this);
