@@ -115,10 +115,29 @@ function image({ src, img, title, description, base, dpi, }) { return (
 
 
 function setFunctionOnChange(loader, options, func, name = func.name) {
+	async function getEvaluator() {
+		if (evaluator) { return evaluator; }
+		return (evaluator = (await new (await require.async('../common/evaluator'))({ init: function() {
+			const frozen = new Set;
+			const freeze = object => {
+				if ((typeof object !== 'object' && typeof object !== 'function') || object === null || frozen.has(object)) { return; }
+				frozen.add(object);
+				Object.getOwnPropertyNames(object).forEach(key => { try { freeze(object[key]); } catch (_) { } });
+				Object.getOwnPropertySymbols(object).forEach(key => { try { freeze(object[key]); } catch (_) { } });
+				// try { freeze(Object.getPrototypeOf(object)); } catch (_) { }
+			};
+			[ 'Object', 'Array', 'Function', 'Math', 'Error', 'TypeError', 'String', 'Number', 'Boolean', 'Symbol', 'RegExp', 'Promise', ]
+			.forEach(prop => {
+				Object.defineProperty(window, prop, { writable: false, configurable: false, });
+				freeze(window[prop]);
+			});
+			frozen.forEach(Object.freeze);
+		}, })));
+	} let evaluator;
 	options[name].whenChange(async ([ value, ]) => { try {
 		loader[name].destroy && loader[name].destroy();
 		loader[name] = options[name].values.isSet
-		? (await require.async('./evaluator')).newFunction('url', value) : func;
+		? (await getEvaluator()).newFunction('url', value) : func;
 		return loader[name].ready;
 	} catch (error) { reportError(`Could not compile "${ name }" for "${ loader.name }"`, error); throw error; } });
 }

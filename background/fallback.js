@@ -4,7 +4,7 @@
 	'node_modules/web-ext-utils/loader/views': Views,
 	'node_modules/web-ext-utils/utils/': { reportError, },
 	'common/options': options,
-	'common/sandbox': makeSandbox,
+	'common/sandbox': Sandbox,
 	'content/panel.js': js,
 	'fetch!content/panel.css': css,
 	'fetch!content/panel.html': html,
@@ -49,7 +49,7 @@ const methods = {
 		view.addEventListener('unload', () => { view && tab.port && tab.port.destroy(); tab = tab.port = null; });
 		view.document.title = `Fallback - Wikipedia Peek`;
 
-		const port = tab.port = (await makeSandbox(js, {
+		const port = tab.port = (await new Sandbox(js, {
 			html, srcUrl: require.toUrl('content/panel.js'),
 			host: view.document.body, // needs to reside in the view, otherwise firefox won't give the elements any dimensions
 		}));

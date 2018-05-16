@@ -15,8 +15,9 @@ const options = (await register({
 	priority: 2,
 	includes: [
 		'*://*.wikipedia.org/wiki/*', '*://*.mediawiki.org/wiki/*',
-		String.raw`^https?://.*\.wiki[^\.\/]*?\.org/wiki/.*$`,
+		String.raw`^https?://([\w-]+\.)*wiki[\w.-]*\.org/wiki/.*$`,
 		'*://*.gamepedia.com/*',
+		// String.raw`^https?:\/\/([\w-]+\.)*?(wiki[\w-]+|[\w-]+pedia)(\.[\w-]+)*\/wiki\/.*$`, //
 	],
 	options: {
 		getApiPath: {
@@ -92,10 +93,7 @@ function getApiPath(url) {
 	if ((/(?:^|\.)(?:wiki[^\.]*?|mediawiki)\.org$/).test(url.hostname)) {
 		return 'https://'+ url.host +'/w/api.php'; // always use https
 	}
-	if ((/(?:^|\.)gamepedia\.com$/).test(url.hostname)) {
-		return 'https://'+ url.host +'/api.php'; // always use https
-	}
-	return null;
+	return 'https://'+ url.host +'/api.php'; // always use https
 }
 
 function getArticleName(url) {

@@ -1,7 +1,7 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 	'node_modules/web-ext-utils/loader/content': { onUnload, },
 	'common/options': options,
-	'common/sandbox': makeSandbox,
+	'common/sandbox': Sandbox,
 	'fetch!./panel.css:css': css,
 	'fetch!./panel.html': html,
 	'./panel.js': js,
@@ -12,7 +12,7 @@
 const HOVER_HIDE_DELAY = 230; // ms
 const style = options.style.children;
 let target = null, state = 'hidden';
-const port = (await makeSandbox(js, {
+const port = (await new Sandbox(js, {
 	html: html.replace(/\${\s*css\s*}/, css),
 	srcUrl: require.toUrl('./panel.js'),
 	host: document.scrollingElement,

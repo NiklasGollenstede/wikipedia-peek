@@ -1,7 +1,7 @@
 (function(global) { 'use strict'; define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	'node_modules/web-ext-utils/browser/': { manifest, browserAction, Tabs, runtime, },
+	'node_modules/web-ext-utils/browser/': { manifest, browserAction, Tabs, },
 	'node_modules/web-ext-utils/browser/messages': Messages,
-	'node_modules/web-ext-utils/browser/version': { gecko, fennec, },
+	'node_modules/web-ext-utils/browser/version': { gecko, },
 	'node_modules/web-ext-utils/loader/': { ContentScript, detachFormTab, },
 	'node_modules/web-ext-utils/loader/views': Views,
 	'node_modules/web-ext-utils/update/': updated,
@@ -10,14 +10,13 @@
 	'common/options': options,
 	Fallback, // loading this on demand is to slow in fennec
 	Loader,
-	remote,
+	remote: _, // the remote plugin handler just needs to be loaded early
 	require,
 }) => {
 
 let debug; options.debug.whenChange(([ value, ]) => { debug = value; require('node_modules/web-ext-utils/loader/').debug = debug >= 2; });
 debug && console.info(manifest.name, 'loaded, updated', updated);
 
-void remote; // the remote plugin handler just needs to be loaded early
 
 // Messages
 Messages.addHandler(function getPreview() { return Loader.getPreview(this, ...arguments); }); // eslint-disable-line no-invalid-this

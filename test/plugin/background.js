@@ -32,10 +32,10 @@ const plugin = (await Loader.register({
 		Current message is "${ plugin.options.values.message[0] }"`;
 	},
 }));
-console.log('plugin connected');
+console.info('plugin connected');
 
 plugin.onDisconnect.addListener(() => {
-	console.log('plugin disconnected');
+	console.info('plugin disconnected');
 	main(Loader);
 });
 

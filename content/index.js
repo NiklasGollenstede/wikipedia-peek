@@ -19,7 +19,7 @@ const {
 let loading = null; // the link that is currently being loaded for
 let overlay = null; /* require.async('./overlay') */
 
-debug && console.debug('content options', module.config());
+debug && console.info('content options', module.config());
 
 /// returns whether or not the screen has recently been touched and touch friendly behavior should apply
 const inTouchMode = typeof touchMode === 'boolean' ? () => touchMode
@@ -47,7 +47,7 @@ const preventClick = (timeout => () => {
  */
 async function showForElement(link, active) {
 	loading = link; let canceled = false; const cancel = _ => {
-		debug && console.debug('cancel for', _, link);
+		debug && console.info('cancel for', _, link);
 		loading = null; canceled = true;
 		overlay && overlay.cancel(link);
 		link.removeEventListener('mouseleave', cancel);
@@ -61,7 +61,7 @@ async function showForElement(link, active) {
 		!active && (await sleep(showDelay));
 		if (canceled) { return; }
 
-		debug && console.debug('loading for', link);
+		debug && console.info('loading for', link);
 		// start loading
 		const getPreview = request('getPreview', link.href);
 		let gotPreview = false; getPreview.then(() => (gotPreview = true));
