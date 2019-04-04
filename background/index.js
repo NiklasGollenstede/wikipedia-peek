@@ -28,7 +28,7 @@ Messages.addHandlers('Fallback.', Fallback);
 (await Promise.all(readDir('background/loaders').map(name => require.async('background/loaders/'+ name.slice(0, -3)))));
 Views.getViews().forEach(loc => loc.name === 'options' && loc.view.location.reload());
 options.advanced.children.resetCache.onChange((_, __, { values, }) => {
-	if (!values.isSet) { return; } values.reset();
+	if (!values.isSet) { return; } setTimeout(() => values.reset(), 10);
 	Loader.clearCache();
 	reportSuccess('Cache cleared');
 });

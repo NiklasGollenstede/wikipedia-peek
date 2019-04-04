@@ -86,8 +86,8 @@ body {
 
 /* lists */
 #content ul {
-	list-style: none;
-	margin-left: 0;
+	list-style: none; position: relative;
+	margin-left: 0; padding-left: 0;
 }
 #content ul>li {
 	padding-left: 1em;
@@ -95,7 +95,7 @@ body {
 #content ul>li::before {
 	content: "•";
 	position: absolute;
-	left: 0.7em;
+	left: 0.1em;
 }
 #content ol {
 	margin-left: 1.2em;

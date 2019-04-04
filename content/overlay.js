@@ -12,10 +12,13 @@
 const HOVER_HIDE_DELAY = 230; // ms
 const style = options.style.children;
 let target = null, state = 'hidden';
+const docRoot = document.documentElement.appendChild(document.createElement('div'));
+onUnload.addListener(() => docRoot.remove());
+
 const port = (await new Sandbox(js, {
 	html: html.replace(/\${\s*css\s*}/, css),
 	srcUrl: require.toUrl('./panel.js'),
-	host: document.scrollingElement,
+	host: docRoot.attachShadow({ mode: 'closed', }),
 }).catch(error => console.error(error)));
 if (!port) { return false; } // can't return null
 const frame = port.frame;
@@ -59,7 +62,7 @@ function getHostPosition() {
 const listener = {
 	checking: false,
 	async handleEvent(event) {
-		if (event.type === 'click') { return void Overlay.hide(); }
+		if (event.type === 'click') { Overlay.hide(); return; }
 		// else mousemove
 		if (listener.checking || target.contains(event.target) || event.target === frame) { return; }
 		listener.checking = true; try { for (let i = 0; i < 8; ++i) {
@@ -102,20 +105,20 @@ const Overlay = {
 	get target() { return target; },
 	get state() { return state; }, // one of [ hidden, loading, failed, showing, ]
 	async loading(element) {
-		return void (await setState('loading', element, null));
+		(await setState('loading', element, null));
 	},
 	async failed(element, visible) {
-		return void (await setState('failed', element, visible));
+		(await setState('failed', element, visible));
 	},
 	async show(element, content) {
-		return void (await setState('showing', element, { content, maxWidth: Math.min(document.documentElement.clientWidth, window.screen.width) - 20, }));
+		(await setState('showing', element, { content, maxWidth: Math.min(document.documentElement.clientWidth, global.screen.width) - 20, }));
 	},
 	async cancel(element) {
 		if (state !== 'loading' || !element || element !== target) { return; }
-		return void (await setState('hidden', null, null));
+		(await setState('hidden', null, null));
 	},
 	async hide() {
-		return void (await setState('hidden', null, null));
+		(await setState('hidden', null, null));
 	},
 };
 
@@ -131,7 +134,6 @@ port.addHandler(setSize);
 port.addHandler((/^background\./), (name, ...args) => request(name.replace('background', 'panel'), ...args));
 async function setStyle() { setSize((await port.request('setStyle', getStyle()))); }
 style.parent.onAnyChange(setStyle); setStyle();
-onUnload.addListener(() => Overlay.hide() === frame.remove());
 
 return Overlay;
 

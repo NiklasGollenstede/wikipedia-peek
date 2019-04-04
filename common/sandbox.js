@@ -1,9 +1,9 @@
 (function(global) { 'use strict'; define(({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	'node_modules/web-ext-utils/lib/multiport/': Port,
 	'node_modules/web-ext-utils/browser/': { rootUrl, inContent, },
 	'node_modules/web-ext-utils/browser/version': { gecko, },
-	options, require,
-}) => { /* global URL, Blob, btoa, */
+	'node_modules/multiport/': Port,
+	require,
+}) => { /* global URL, Blob, btoa, window, */
 
 /**
  * A Port connected to a sandboxed iframe.
@@ -32,13 +32,11 @@ class Sandbox extends Port {
 			(await new Promise((load, error) => {
 				frame.onload = load; frame.onerror = error;
 				host.appendChild(frame);
-				gecko && !debug && URL.revokeObjectURL(frame.src); // revoke as soon as possible (but not in chrome, where that would be too early ...)
-				// if the page listens for 'DOMNodeInserted' (deprecated) and then does a synchronous XHR (deprecated) it can actually read the contents of the Blob.
-				// the only way this could be prevented would be to listen for 'DOMNodeInserted' earlier and cancel the event
 			}));
-			!gecko && !debug && URL.revokeObjectURL(frame.src);
 
 			frame.onload = frame.onerror = null;
+
+			!gecko && (await new Promise(wake => setTimeout(wake, 300))); // required in Chrome (73)
 
 			const { port1, port2, } = new host.ownerDocument.defaultView.MessageChannel;
 			frame.contentWindow.postMessage(null, '*', [ port1, ]); // only the frame content can receive this
@@ -56,6 +54,7 @@ class Sandbox extends Port {
 			}));
 
 		} catch (error) { frame.remove(); throw error; }
+		finally { URL.revokeObjectURL(frame.src); }
 	} return this; })(); }
 
 	destroy() {
@@ -66,24 +65,25 @@ class Sandbox extends Port {
 
 //// start implementation
 
-
-let debug; options.debug.whenChange(([ value, ]) => { debug = value; });
-
 const PortCode = `(function(global) { 'use strict'; return (${
-	require.cache['node_modules/web-ext-utils/lib/multiport/index'].factory
+	require.cache['node_modules/multiport/index'].factory
 })(); })(window)`;
 
+const setup = (global, init, Port) => {
+	document.currentScript.remove();
+	window.onmessage = ({ ports: [ port1, ], }) => {
+		const port = new Port(port1, Port.MessagePort);
+		port.post('loaded');
+		window.onmessage = null; port1 = null;
+		init.call(global, port);
+	};
+};
+
 function createFrame(init, html, srcUrl, sandbox, host) {
-	let script = [
-		`document.currentScript.remove();`,
-		`(Port => window.onmessage = ({ ports: [ port1, ], }) => {`,
-			`port1.postMessage([ 'loaded', 0, [ ], ]);`,
-			`const port = new Port(port1, Port.MessagePort);`,
-			`window.onmessage = null; port1 = null;`,
-			`(${ init })(port);`,
-		`})(${ PortCode });`,
-		`//# sourceURL=${ srcUrl }\n`,
-	].join(' ');
+
+	let script = `(function () { arguments[1](this, arguments[0], ...[].slice.call(arguments, 2)); })`
+	+ `((${ init }), (${ setup }), (${ PortCode }));` // `init` should start on line 1 of the script
+	+ `\n//# sourceURL=${ srcUrl }\n`;
 
 	if (!inContent) { // Firefox doesn't allow inline scripts in the extension pages,
 		// so the code inside the script itself is allowed by 'sha256-QMSw9XSc08mdsgM/uQhEe2bXMSqOw4JvoBdpHZG21ps=', the eval() needs 'unsafe-eval'
@@ -91,7 +91,7 @@ function createFrame(init, html, srcUrl, sandbox, host) {
 	} else {
 		script = `<script>${ script }</script>`;
 	}
-	html = html.replace(rHtmlEnd, script + '</html>');
+	html = html.replace(/<\/html>|$/, script + '</html>');
 
 	const url = URL.createObjectURL(new Blob([ html, ], { type: 'text/html', }));
 	const frame = host.ownerDocument.createElement('iframe'); {
@@ -100,9 +100,6 @@ function createFrame(init, html, srcUrl, sandbox, host) {
 		frame.style.display = 'none';
 	} return frame;
 }
-
-let rHtmlEnd; try { rHtmlEnd = new RegExp(String.raw`(?<!<!--(?!.*-->).*)<\/html>|$`); }
-catch (_) { rHtmlEnd = (/<\/html>|$/); } // lookbehind not supported yet
 
 return Sandbox;
 

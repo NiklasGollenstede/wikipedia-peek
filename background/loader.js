@@ -30,7 +30,7 @@ async function register(loader) {
 				maxLength: Infinity,
 				default: includes,
 				restrict: { unique: '.', match: {
-					exp: (/^(?:\^\S*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/(\S*)))$/i),
+					exp: (/^(?:\^\S*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^/* ]+|)\/(\S*)))$/i),
 					message: `Each pattern must be of the form <scheme>://<host>/<path> or be framed with '^' and '$'`,
 				}, },
 				input: { type: 'string', default: '', },

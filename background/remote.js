@@ -1,7 +1,7 @@
 (function(global) { 'use strict'; prepare() && define(async ({ // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	'node_modules/web-ext-utils/lib/multiport/': Port,
 	'node_modules/web-ext-utils/browser/': { runtime, Storage, },
 	'node_modules/web-ext-utils/utils/': { reportError, },
+	'node_modules/multiport/': Port,
 	'background/loader': Loader,
 	'common/options': options,
 }) => {
@@ -19,14 +19,14 @@ async function onConnect(connection) { try {
 	port.post('connected');
 	if (connection.name !== 'Plugin.register') {
 		console.warn(`Got external port connection with incorrect name "${ port.name }"`);
-		return void port.destroy();
+		port.destroy(); return;
 	}
 
 	if (!allowedIds.values.current.includes(connection.sender.id)) {
 		(await reportError(`Plugin with ID "${ connection.sender.id }" not allowed`));
 		// TODO: ask other end for info, then ask the user if they want to accept
 		// const info = (await port.request('getPluginInfo'));
-		return void port.destroy();
+		port.destroy(); return;
 	}
 
 	port.addHandler(async function register(loader) { try {

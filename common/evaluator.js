@@ -79,13 +79,4 @@ function setup(port) {
 
 return Evaluator;
 
-/*
-E = await new (await require.async('background/evaluator'))({ init: port => {
-	window.openTab = url => port.request('browser.tabs.create', { url, });
-}, });
-E.addHandlers('browser.tabs.', Browser.tabs);
-F = E.newFunction('url', 'openTab(url)'); await F("https://example.com"); F.destroy();
-*/
-
-
 }); })(this);

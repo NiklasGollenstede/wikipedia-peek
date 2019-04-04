@@ -9,31 +9,35 @@
 		"type": "git",
 		"url": "https://github.com/NiklasGollenstede/wikipedia-peek"
 	},
-	"contributions": [
-		{
-			"what": { "name": "Readability.js", "url": "https://github.com/mozilla/readability" },
-			"who": "Mozilla",
-			"license": { "name": "Apache-2.0", "url": "https://www.apache.org/licenses/LICENSE-2.0" }
-		}
-	],
-
+	"homepage": "https://github.com/NiklasGollenstede/wikipedia-peek#readme",
+	"contributions": [ {
+		"what": { "name": "Readability.js", "url": "https://github.com/mozilla/readability" },
+		"who": "Mozilla",
+		"license": { "name": "Apache-2.0", "url": "https://www.apache.org/licenses/LICENSE-2.0" }
+	} ],
 	"dependencies": {
-		"es6lib": "0.0.2",
-		"readability": "mozilla/readability#1369f92",
+		"es6lib": "0.0.3",
+		"multiport": "0.2.3",
+		"pbq": "0.4.1",
+		"readability": "github:mozilla/readability#3be1aaa",
 		"regexpx": "0.1.4",
-		"web-ext-build": "0.0.8",
-		"web-ext-utils": "0.0.19"
+		"web-ext-build": "0.0.10",
+		"web-ext-utils": "0.1.11"
 	},
 	"devDependencies": {
-		"babel-eslint": "7.1.1",
-		"eslint": "3.14.1",
-		"eslintrc": "NiklasGollenstede/eslintrc#3872881"
+		"eslintrc": "github:NiklasGollenstede/eslintrc#5837452",
+		"ghooks": "^2.0.4"
 	},
 	"scripts": {
 		"postinstall": "npm start",
 		"start": "web-ext-build",
-		"lint": "eslint --ignore-path .gitignore .",
+		"lint": "eslintrc --ignore-path .gitignore .",
 		"sign": "web-ext-build {beta:$APPVEYOR_BUILD_NUMBER,sign:1}"
+	},
+	"config": {
+		"ghooks": {
+			"pre-commit": "npm run lint --silent -- --color"
+		}
 	},
 	"eslintConfig": {
 		"extends": "./node_modules/eslintrc/web-ext.js"

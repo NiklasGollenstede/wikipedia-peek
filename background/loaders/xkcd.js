@@ -26,18 +26,17 @@ async function load(url) {
 
 	url === 'https://c.xkcd.com/random/comic/' && global.setTimeout(() => clearCache(url), 1000);
 
-	let img = (/id="comic">\s*(<img.*?>)/).exec(html);
+	let img = (/id="comic"[^>]*?>\s*?(<img.*?>)/).exec(html);
 	if (!img) { return null; } img = img[1];
 
 	const hd = (/srcset=".*?([^ ]*?) 2x/).exec(img);
-	const sd = (/src="([^"]*)/).exec(img);
-	const src = (hd || sd || [ '', '', ])[1];
+	const src = (hd || (/src="([^"]*)/).exec(img) || [ '', '', ])[1];
 	if (!src) { return null; }
 
 	let description = (/title="([^"]*)/).exec(img); description = description && description[1];
 	let title = (/alt="([^"]*)/).exec(img); title = title && title[1];
 
-	return image({ base: url, src, title, description, });
+	return image({ src: new URL(src, url).href, dpr: hd ? 2 : 1, title, description, });
 }
 
 }); })(this);

@@ -26,7 +26,7 @@ const model = {
 		maxLength: Infinity,
 		default: [ 'https://*.wikipedia.org/*', 'https://*.mediawiki.org/*', 'https://*.wikia.com/*', '<all_urls>', ],
 		restrict: { match: {
-			exp: (/^(?:\^\S*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/(\S*)))$/i),
+			exp: (/^(?:\^\S*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^/* ]+|)\/(\S*)))$/i),
 			message: `Each pattern must be of the form <scheme>://<host>/<path> or be framed with '^' and '$'`,
 		}, },
 		input: { type: 'string', default: 'https://*.wikipedia.org/*', },
@@ -125,11 +125,17 @@ const model = {
 				input: { type: 'boolean', suffix: `load thumbnails`, },
 				children: {
 					size: {
-						default: 150,
-						restrict: { type: 'number', from: 40, to: 400, },
+						default: 250,
+						restrict: { type: 'number', from: 40, to: 800, },
 						input: { type: 'integer', prefix: `size`, suffix: 'px', },
 					},
 				},
+			},
+			inlineImages: {
+				title: 'Inline Images',
+				expanded: false,
+				default: false,
+				input: { type: 'boolean', suffix: `preload images and include them as <code>base64</code>.<br>This may help with aggressive Ad-Blockers, but is generally slower.`, },
 			},
 			touchMode: {
 				title: 'Touch Mode',
@@ -246,7 +252,7 @@ const model = {
 		restrict: [
 			{ type: 'boolean', },
 			{ type: 'string', match: {
-				exp: (/^(?:(?:\^\S*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/(\S*)))(?:\s+(?!$)|$))*$/i),
+				exp: (/^(?:(?:\^\S*\$|<all_urls>|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^/* ]+|)\/(\S*)))(?:\s+(?!$)|$))*$/i),
 				message: `Expected a space separated list of match patterns`,
 			}, },
 			{ type: 'string', },

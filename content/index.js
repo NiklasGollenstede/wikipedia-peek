@@ -42,8 +42,8 @@ const preventClick = (timeout => () => {
 
 /**
  * Goes through all steps of loading a preview and checks if the link is still the target after each step.
- * @param  {Element}  link  The element that the user is currently targeting by hovering it or having tapped it.
- * @param  {boolean}  wait  Whether to wait showDelay before taking further steps.
+ * @param  {Element}  link    The element that the user is currently targeting by hovering it or having tapped it.
+ * @param  {boolean}  active  If true, load immediately (don't wait showDelay) and always show visual feedback.
  */
 async function showForElement(link, active) {
 	loading = link; let canceled = false; const cancel = _ => {
@@ -71,7 +71,7 @@ async function showForElement(link, active) {
 			fallback.always ? require.async('./fallback')
 			: require.async('./overlay').then(_=>_ || fallback && require.async('./fallback'))
 		)); }
-		else { (await sleep(100)); } // give the cache a bit of time to respond before showing the spinner
+		else { active && (await sleep(100)); } // give the cache a bit of time to respond before showing the spinner
 		if (!overlay) { doUnload(); throw new Error(`Unable to open preview (fallback is disabled)`); }
 		if (canceled) { return; }
 		if (!gotPreview) {
@@ -100,6 +100,7 @@ function shouldIgnore(link) { return (
 	!link || loading === link || !link.href
 	|| overlay && overlay.target === link && overlay.state !== 'hidden'
 	|| (/^(?:about|blob|data|javascript|mailto):/).test(link.href)
+	|| link.getAttribute('href') === '#' // due to <base href=> this is not necessarily detected by equalExceptHash
 	|| equalExceptHash(link.href, location.href)
 	|| excludeAnchor(link)
 ); }
@@ -179,7 +180,7 @@ function blockEvent(event) {
 }
 
 function request(method, ...args) { return new Promise((resolve, reject) => chrome.runtime.sendMessage([ method, 1, args, ], reply => { try {
-	if (chrome.runtime.lastError) { return void reject(chrome.runtime.lastError); }
+	if (chrome.runtime.lastError) { reject(chrome.runtime.lastError); return; }
 	const [ , id, [ value, ], ] = reply;
 	(id < 0 ? reject : resolve)(value);
 } catch (error) { reject(error); } })); }

@@ -43,7 +43,7 @@ const methods = {
 			openerTabId: this.tab.id,
 		}));
 		const { view, } = tab;
-		if (!view.document.hasFocus()) { return void methods.hide(); }
+		if (!view.document.hasFocus()) { methods.hide(); return; }
 
 		closeOnBlur.value && view.addEventListener('blur', async () => tab && (!tab.port || !(await tab.port.request('isHovered'))) && methods.hide());
 		view.addEventListener('unload', () => { view && tab.port && tab.port.destroy(); tab = tab.port = null; });
@@ -65,7 +65,7 @@ const methods = {
 		const parent  = Windows && (await Windows.get((await Tabs.get(this.tab.id)).windowId));
 		const size = (await port.request('setState', 'showing', { content, maxWidth: parent ? parent.width - 20 : 999999, }));
 		Windows && (await setSize(size));
-		if (!view.document.hasFocus()) { return void methods.hide(); }
+		if (!view.document.hasFocus()) { methods.hide(); return; }
 
 		async function setSize(content) {
 			const addTop  = offsetTop[parent.state].value;

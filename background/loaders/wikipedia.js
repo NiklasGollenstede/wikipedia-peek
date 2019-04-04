@@ -90,7 +90,7 @@ async function doLoad(api, title, section, lang) {
 
 function getApiPath(url) {
 	url = new URL(url);
-	if ((/(?:^|\.)(?:wiki[^\.]*?|mediawiki)\.org$/).test(url.hostname)) {
+	if ((/(?:^|\.)(?:wiki[^.]*?|mediawiki)\.org$/).test(url.hostname)) {
 		return 'https://'+ url.host +'/w/api.php'; // always use https
 	}
 	return 'https://'+ url.host +'/api.php'; // always use https

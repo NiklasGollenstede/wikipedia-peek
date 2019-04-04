@@ -24,7 +24,7 @@ const options = (await register({
 			maxLength: Infinity,
 			default: [ String.raw`^.*\.(?:jpeg|jpg|png|gif|svg|pdf)$`, ],
 			restrict: { unique: '.', match: {
-				exp: (/^(?:\^.*\$|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^\/\*\ ]+|)\/([^\ ]*)))$/i),
+				exp: (/^(?:\^.*\$|(?:(\*|http|https|file|ftp|app):\/\/(\*|(?:\*\.)?[^/* ]+|)\/([^ ]*)))$/i),
 				message: `Each pattern must be of the form <scheme>://<host>/<path> or be framed with '^' and '$'`,
 			}, },
 			input: { type: 'string', default: '', },
@@ -57,7 +57,16 @@ async function load(url) {
 
 	// TODO: if url.hash, remove everything in the DOM before `#${ url.hash }`?
 
-	let parsed; try { parsed = new Readability(makeURI(url), document).parse(); } catch (error) { console.error(`Readability.js threw:`, error); }
+	let parsed; try { parsed = new Readability(document).parse(); } catch (error) { console.error(`Readability.js threw:`, error); }
+	/**
+	 * title: article title
+	 * content: HTML string of processed article content
+	 * length: length of an article, in characters
+	 * excerpt: article description, or short excerpt from the content
+	 * byline: author metadata
+	 * dir: content direction
+	 */
+
 	if (!parsed || !parsed.excerpt) { return null; }
 
 	const title = parsed.title.replace(lastSegment, ''); // .split(/ (?:-|–|—|\||::) /)[0]; // TODO: only remove the last compartment? (done)
@@ -72,12 +81,5 @@ async function load(url) {
 
 	return article({ html: text, });
 }
-
-function makeURI(url) { return {
-	spec: url.href, host: url.host,
-	prePath: url.protocol + "//" + url.host,
-	scheme: url.protocol.substr(0, url.protocol.indexOf(":")),
-	pathBase: url.protocol + "//" + url.host + url.pathname.substr(0, url.pathname.lastIndexOf("/") + 1),
-}; }
 
 }); })(this);
